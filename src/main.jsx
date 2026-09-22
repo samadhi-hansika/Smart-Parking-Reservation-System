@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { createRoot } from "react-dom/client";
 
 import {
   BrowserRouter,
@@ -102,16 +103,15 @@ function Navbar({ user, role }) {
     <header className="header">
       <div className="nav">
 
-        <Link className="brand" to="/">
+        <a className="brand" href="#top">
           <span className="brandIcon">
             <CarFront />
           </span>
 
           <span>
-            <b>Smart Parking</b>
-            <small>Reservation System</small>
+            <b>ParkSmart</b>
           </span>
-        </Link>
+        </a>
 
         <button
           className="menu"
@@ -122,41 +122,25 @@ function Navbar({ user, role }) {
 
         <nav className={open ? "navlinks open" : "navlinks"}>
 
-          <Link
-            to="/"
+          <a
+            href="#top"
             onClick={() => setOpen(false)}
             className="active"
           >
             Home
-          </Link>
-
-          <Link to="/locations">
-            <MapPin />
-            Locations
-          </Link>
-
-          <a href="/#about">
-            <Info />
-            About
           </a>
 
-          <a href="/#how">
-            <Settings />
-            How It Works
-          </a>
+          <a href="#about" onClick={() => setOpen(false)}>Locations</a>
 
-          <a href="/#contact">
-            <Mail />
-            Contact
-          </a>
+          <a href="#about" onClick={() => setOpen(false)}>About</a>
+
+          <a href="#download" onClick={() => setOpen(false)}>How It Works</a>
 
           {user ? (
             <>
-              <Link
-                to={role === "admin" ? "/admin" : "/dashboard"}
-              >
+              <button className="profile-link" type="button">
                 <CircleUserRound />
-              </Link>
+              </button>
 
               <button
                 className="btn outline navbtn"
@@ -167,19 +151,14 @@ function Navbar({ user, role }) {
             </>
           ) : (
             <>
-              <Link
-                className="btn outline navbtn"
-                to="/login"
-              >
-                Login
-              </Link>
+              <button className="login-link" type="button">Login</button>
 
-              <Link
+              <button
                 className="btn primary navbtn"
-                to="/register"
+                type="button"
               >
                 Register
-              </Link>
+              </button>
             </>
           )}
 
@@ -206,7 +185,7 @@ function Home({ user }) {
           <div className="heroText">
 
             <div className="eyebrow">
-              🚗 Smart Parking for a Better Tomorrow
+              FASTEST BOOKING IN THE CITY
             </div>
 
             <h1>
@@ -216,29 +195,22 @@ function Home({ user }) {
             </h1>
 
             <p>
-              The Smart Parking Reservation System helps you
-              find available parking spaces, reserve your spot
-              in advance, and enjoy a hassle-free parking
-              experience. Save time, reduce traffic, and park
-              with confidence.
+              Skip the circling and the stress. Reserve your spot in
+              seconds with our smart network of premium parking
+              locations. Simple, secure, and always ready for you.
             </p>
 
             <div className="actions">
 
-              <Btn
-                to={user ? "/locations" : "/register"}
-              >
-                <Search />
-                Find Parking Locations
-                <ArrowRight />
+              <Btn>
+                Book Now <ArrowRight />
               </Btn>
 
               <a
                 className="btn outline"
                 href="#how"
               >
-                <Play />
-                How It Works
+                Learn More
               </a>
 
             </div>
@@ -246,13 +218,8 @@ function Home({ user }) {
             <div className="trust">
 
               <span>
-                <ShieldCheck />
-                Secure Reservations
-              </span>
-
-              <span>
-                <Clock3 />
-                Save Your Time
+                <span className="avatars">● ● ●</span>
+                <span><b>★★★★★</b><br />Join 50k+ happy drivers</span>
               </span>
 
             </div>
@@ -263,33 +230,14 @@ function Home({ user }) {
 
           <div className="visual">
 
-            <div className="orb"></div>
-
-            <div className="parking">
-
-              <div className="psign">
-                P
-              </div>
-
-              <div className="road">
-
-                <div className="fakecar c1"></div>
-
-                <div className="fakecar c2"></div>
-
-              </div>
-
-            </div>
-
-            {/* PHONE */}
-
             <div className="phone">
 
               <div className="notch"></div>
 
               <div className="phonebody">
 
-                <b>Find Parking</b>
+                <small>Current Location</small>
+                <b>Downtown, NY</b>
 
                 <div className="psearch">
                   <Search />
@@ -297,10 +245,9 @@ function Home({ user }) {
                 </div>
 
                 {[
-                  "City Center Mall",
-                  "University Parking",
-                  "Hospital Parking",
-                  "Office Complex"
+                  "Central Plaza P1",
+                  "Underground X",
+                  "Riverfront Lot"
                 ].map((location, index) => (
 
                   <div
@@ -314,9 +261,7 @@ function Home({ user }) {
 
                       <b>{location}</b>
 
-                      <small>
-                        {12 - index * 2} available slots
-                      </small>
+                      <small>${(12 - index * 2) / 10}.00 · Available</small>
 
                     </div>
 
@@ -330,10 +275,10 @@ function Home({ user }) {
 
             </div>
 
-            <div className="note">
-              Smarter Parking
-              <br />
-              for a Greener Future
+            <div className="availability-card">
+              <small>Slots Available</small>
+              <strong>12,482</strong>
+              <span>↑ 12% this week</span>
             </div>
 
           </div>
@@ -358,8 +303,7 @@ function Home({ user }) {
             </div>
 
             <h2>
-              A Smarter Way to
-              <span> Manage Parking</span>
+              The Smarter Way to Park
             </h2>
 
             <p>
@@ -375,31 +319,40 @@ function Home({ user }) {
             <Benefit
               icon={<Clock3 />}
               t="Save Time"
-              d="Find and reserve your parking space in advance."
+              d="Never spend another minute looking for an available spot. Book ahead and drive straight to your spot."
             />
 
             <Benefit
               icon={<ShieldCheck />}
               t="More Secure"
-              d="Safe and reliable reservation management."
+              d="Rest assured, your vehicle with full transparency and no surprise charges for your peace of mind."
             />
 
             <Benefit
               icon={<Leaf />}
               t="Reduce Traffic"
-              d="Less time searching means less congestion."
+              d="By optimizing parking searches, we help reduce city congestion and carbon emissions."
             />
 
             <Benefit
               icon={<Building2 />}
               t="Better Management"
-              d="Efficient parking space and reservation control."
+              d="Real-time analytics and dynamic pricing help lot owners maximize occupancy and revenue."
             />
 
           </div>
 
         </div>
 
+      </section>
+
+      <section id="download" className="app-promo">
+        <div>
+          <h2>Ready to transform your<br />parking experience?</h2>
+          <p>Download our mobile app today and get 20% off your first reservation. Available on iOS and Android.</p>
+          <div className="store-buttons"><button> &nbsp; App Store</button><button>▶ &nbsp; Google Play</button></div>
+        </div>
+        <div className="phone-pair"><div>⌖<br /><small>Find a Parking</small></div><div>⌖<br /><small>Reserve a Spot</small></div></div>
       </section>
 
       {/* HOW IT WORKS */}
@@ -800,9 +753,7 @@ function Auth({ register = false }) {
   );
 }
 
-/* =========================================================
-   LOCATIONS
-========================================================= */
+/* LOCATIONS */
 
 function Locations() {
 
@@ -921,9 +872,7 @@ function Locations() {
   );
 }
 
-/* =========================================================
-   PARKING SLOTS
-========================================================= */
+/*  PARKING SLOTS */
 
 function Slots() {
 
@@ -1063,9 +1012,7 @@ function Slots() {
   );
 }
 
-/* =========================================================
-   RESERVATION
-========================================================= */
+/*  RESERVATION*/
 
 function Reserve() {
 

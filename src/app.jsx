@@ -27,7 +27,7 @@ const locations = [
   },
 ];
 
-function App() {
+function app() {
   const [page, setPage] = useState("home");
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedSlot, setSelectedSlot] = useState(null);
@@ -72,7 +72,7 @@ function App() {
   return (
     <div className="app">
 
-      {/* ================= NAVBAR ================= */}
+      {/* NAVBAR */}
       <header className="navbar">
 
         <div
@@ -122,7 +122,7 @@ function App() {
       </header>
 
 
-      {/* ================= HOME PAGE ================= */}
+      {/*  HOME PAGE  */}
 
       {page === "home" && (
         <>
@@ -342,7 +342,7 @@ function App() {
       )}
 
 
-      {/* ================= PARKING SLOTS ================= */}
+      {/*  PARKING SLOTS  */}
 
       {page === "slots" &&
         selectedLocation && (
@@ -421,7 +421,7 @@ function App() {
         )}
 
 
-      {/* ================= RESERVATION ================= */}
+      {/*  RESERVATION  */}
 
       {page === "reserve" &&
         selectedLocation &&
@@ -529,7 +529,7 @@ function App() {
         )}
 
 
-      {/* ================= MY RESERVATIONS ================= */}
+      {/*  MY RESERVATIONS */}
 
       {page === "reservations" && (
 
@@ -615,7 +615,7 @@ function App() {
       )}
 
 
-      {/* ================= LOGIN ================= */}
+      {/*  LOGIN */}
 
       {page === "login" && (
 
@@ -693,7 +693,7 @@ function App() {
       )}
 
 
-      {/* ================= FOOTER ================= */}
+      {/*  FOOTER  */}
 
       <footer>
 
@@ -719,9 +719,7 @@ function App() {
 }
 
 
-/* =====================================================
-   FEATURE COMPONENT
-===================================================== */
+/*  FEATURE COMPONENT */
 
 function Feature({
   icon,
@@ -751,9 +749,7 @@ function Feature({
 }
 
 
-/* =====================================================
-   LOCATION CARD
-===================================================== */
+/*  LOCATION CARD */
 
 function LocationCard({
   location,
@@ -821,9 +817,7 @@ function LocationCard({
 }
 
 
-/* =====================================================
-   PAGE TITLE
-===================================================== */
+/* PAGE TITLE */
 
 function PageTitle({
   title,
@@ -853,4 +847,4 @@ function PageTitle({
 }
 
 
-export default App;
+export default app;

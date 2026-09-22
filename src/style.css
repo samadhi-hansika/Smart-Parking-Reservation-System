@@ -1814,3 +1814,146 @@ footer {
     font-size: 30px;
   }
 }
+
+/* Compact ParkSmart landing page */
+.container { width: min(1160px, calc(100% - 72px)); }
+.header { height: 64px; }
+.nav { width: min(1160px, calc(100% - 72px)); }
+.brand { gap: 7px; }
+.brandIcon { width: 27px; height: 27px; border-radius: 7px; box-shadow: none; }
+.brandIcon svg { width: 15px; }
+.brand b { font-size: 13px; }
+.brand small { display: none; }
+.navlinks { gap: 24px; font-size: 10px; }
+.navlinks .active { background: none; color: var(--blue); padding: 0; border-radius: 0; }
+.login-link { color: #102044; font-weight: 700; }
+.login-link { border: 0; background: transparent; padding: 0; cursor: default; font: inherit; }
+.profile-link { border: 0; background: transparent; color: var(--navy); padding: 0; }
+.profile-link svg { width: 16px; }
+.navbtn { padding: 8px 16px; font-size: 10px; }
+.hero { min-height: 365px; position: relative; overflow: hidden; background: linear-gradient(105deg, #fff 0%, #fff 52%, #e3f3ff 100%); }
+.heroGrid { min-height: 365px; padding: 50px 0 35px; grid-template-columns: 1fr .78fr; gap: 20px; }
+.heroText { padding-top: 0; }
+.eyebrow { font-size: 8px; padding: 5px 9px; letter-spacing: 0; }
+.heroText h1 { font-size: clamp(38px, 4vw, 56px); letter-spacing: -2.5px; margin: 12px 0; }
+.heroText > p { max-width: 410px; font-size: 11px; line-height: 1.65; }
+.actions { margin-top: 18px; gap: 9px; }
+.btn { padding: 10px 15px; border-radius: 6px; font-size: 10px; }
+.btn svg { width: 13px; }
+.trust { margin-top: 17px; gap: 8px; font-size: 8px; align-items: center; }
+.trust .avatars { color: #f59e0b; letter-spacing: -3px; padding-right: 5px; }
+.trust b { color: #f59e0b; font-size: 9px; letter-spacing: 1px; }
+.visual { height: 310px; }
+.phone { top: 0; right: 44px; width: 150px; height: 287px; border-width: 6px; border-radius: 27px; transform: none; box-shadow: 0 16px 34px rgba(25,59,107,.27); }
+.notch { width: 59px; height: 14px; border-radius: 0 0 10px 10px; }
+.phonebody { padding: 13px 9px; }
+.phonebody > small { display: block; color: #8492a8; font-size: 5px; }
+.phonebody > b { display:block; font-size: 9px; margin-top: 2px; }
+.psearch { padding: 6px; margin: 9px 0; font-size: 6px; border-radius: 7px; }
+.ploc { padding: 5px 3px; margin: 5px 0; border-radius: 7px; }
+.ploc > span { width: 20px; height: 20px; font-size: 8px; }
+.ploc b { font-size: 6px; }.ploc small { font-size: 5px; }.ploc > svg { width: 9px; }
+.availability-card { position: absolute; z-index: 7; right: -7px; bottom: 24px; width: 116px; padding: 11px 12px; border-radius: 8px; background: white; box-shadow: 0 9px 25px rgba(20,59,101,.16); }
+.availability-card small,.availability-card span { display:block; color:#8797ad; font-size:6px; }.availability-card strong { display:block; color:#11204a; font-size:18px; margin:2px 0; }.availability-card span { color:#159b70; }
+.section { padding: 32px 0; }
+.benefitGrid { display: block; }
+.benefitGrid > div:first-child { text-align:center; margin-bottom: 25px; }
+.benefitGrid .label, .benefitGrid > div:first-child > p { display:none; }
+.section h2 { display:inline-block; position:relative; margin:0; font-size:21px; letter-spacing:-.6px; }
+.section h2:after { content:""; position:absolute; width:28px; height:2px; background:var(--blue); left:50%; bottom:-9px; transform:translateX(-50%); }
+.benefits { grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.benefit { padding: 16px 13px; border-radius: 9px; box-shadow: 0 5px 18px rgba(28,93,170,.035); }
+.benefit > div { width: 30px; height: 30px; border-radius: 7px; }.benefit > div svg { width: 14px; }
+.benefit h3 { font-size: 10px; margin: 13px 0 6px; }.benefit p { font-size: 8px; line-height:1.55; }
+.app-promo { width:min(1160px, calc(100% - 72px)); margin:0 auto; min-height:180px; padding:32px 58px; background:#104773; color:white; display:flex; justify-content:space-between; align-items:center; overflow:hidden; }
+.app-promo h2 { font-size:24px; line-height:1.06; margin:0 0 14px; }.app-promo p { max-width:395px; font-size:9px; line-height:1.65; color:#b9d5e8; }.store-buttons { display:flex; gap:8px; margin-top:16px; }.store-buttons button { border:0; border-radius:4px; padding:7px 11px; background:white; color:#173f64; font-size:8px; font-weight:700; }
+.phone-pair { align-self:stretch; width:310px; display:flex; gap:15px; justify-content:center; align-items:center; background:linear-gradient(135deg,#64cfbe,#b4eee4); }.phone-pair div { width:74px; height:130px; padding:25px 9px; background:#09324b; border:3px solid #071d2f; border-radius:10px; color:white; text-align:center; font-size:25px; box-shadow:0 8px 14px #184457; }.phone-pair div:last-child { transform:translateY(7px); }.phone-pair small { font-size:6px; }
+.app-promo + .section { display:none; }
+.cta { display: none; }
+footer { width:min(1160px, calc(100% - 72px)); margin:auto; padding:22px 0; }.foot p { font-size:8px; }
+@media (max-width:780px) { .nav { width:calc(100% - 30px); }.heroGrid { grid-template-columns:1fr; padding-bottom:0; }.visual { display:none; }.benefits { grid-template-columns:repeat(2,1fr); }.app-promo { width:100%; padding:30px; }.phone-pair { display:none; } }
+
+/* Screen-size responsive layout */
+.hero,
+.heroGrid { min-height: clamp(330px, 29vw, 430px); }
+
+@media (min-width: 1500px) {
+  .container,
+  .nav,
+  .app-promo,
+  footer { width: min(1320px, calc(100% - 120px)); }
+
+  .heroText h1 { font-size: 62px; }
+  .phone { transform: scale(1.08); transform-origin: top right; }
+  .availability-card { right: -38px; }
+}
+
+@media (max-width: 1000px) {
+  .container { width: calc(100% - 48px); }
+  .nav { width: calc(100% - 48px); }
+  .heroGrid { grid-template-columns: 1.05fr .7fr; }
+  .phone { right: 8px; transform: scale(.9); transform-origin: top right; }
+  .availability-card { right: -15px; bottom: 34px; }
+  .app-promo { width: 100%; }
+}
+
+@media (max-width: 780px) {
+  .container { width: calc(100% - 32px); }
+  .header { height: 58px; }
+  .hero,
+  .heroGrid { min-height: auto; }
+  .heroGrid { padding: 48px 0; }
+  .heroText h1 { font-size: clamp(38px, 11vw, 52px); }
+  .navlinks { font-size: 12px; }
+  .benefits { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .benefit { min-height: 160px; }
+  .app-promo { min-height: auto; padding: 36px 28px; }
+}
+
+@media (max-width: 480px) {
+  .navlinks { gap: 12px; }
+  .navbtn { padding: 7px 10px; }
+  .heroGrid { padding: 36px 0; }
+  .heroText > p { font-size: 12px; }
+  .actions { align-items: stretch; }
+  .actions .btn { flex: 1; }
+  .benefits { grid-template-columns: 1fr; }
+  .benefit { min-height: auto; }
+  .app-promo h2 { font-size: 25px; }
+}
+
+/* Larger, more readable desktop presentation */
+@media (min-width: 1001px) {
+  .header { height: 74px; }
+  .brandIcon { width: 34px; height: 34px; }
+  .brandIcon svg { width: 18px; }
+  .brand b { font-size: 16px; }
+  .navlinks { gap: 30px; font-size: 12px; }
+  .navbtn { padding: 11px 21px; font-size: 12px; }
+
+  .hero,
+  .heroGrid { min-height: clamp(430px, 34vw, 540px); }
+  .heroText h1 { font-size: clamp(56px, 4.4vw, 76px); line-height: 1.02; }
+  .heroText > p { max-width: 530px; font-size: 14px; }
+  .eyebrow { font-size: 10px; padding: 7px 12px; }
+  .btn { padding: 13px 21px; font-size: 13px; }
+  .trust { font-size: 10px; }
+
+  .visual { height: 380px; }
+  .phone { width: 180px; height: 344px; right: 56px; }
+  .availability-card { width: 140px; padding: 13px 15px; }
+  .availability-card strong { font-size: 22px; }
+
+  .section { padding: 58px 0; }
+  .section h2 { font-size: 28px; }
+  .benefits { gap: 16px; }
+  .benefit { padding: 22px 18px; }
+  .benefit > div { width: 38px; height: 38px; }
+  .benefit h3 { font-size: 13px; }
+  .benefit p { font-size: 10px; }
+
+  .app-promo { min-height: 240px; padding: 44px 64px; }
+  .app-promo h2 { font-size: 32px; }
+  .app-promo p { font-size: 12px; }
+  .store-buttons button { padding: 10px 15px; font-size: 10px; }
+}
