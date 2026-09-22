@@ -1,0 +1,353 @@
+# Smart Parking Reservation System
+
+A React and Firebase based Smart Parking Reservation System.
+
+The system provides a modern blue and white interface inspired by the supplied UI reference.
+
+## Technologies
+
+- React.js
+- Vite
+- Firebase Authentication
+- Firebase Firestore
+- React Router
+- Lucide React Icons
+- CSS
+
+---
+
+# Main Features
+
+## User Features
+
+Users can:
+
+- Register an account
+- Login
+- View parking locations
+- Search parking locations
+- View parking slots
+- Check slot availability
+- Select a parking slot
+- Select reservation date
+- Select start time
+- Select end time
+- Make a reservation
+- View reservations
+- Cancel reservations
+
+---
+
+# Admin Features
+
+Administrators can:
+
+- Login
+- View dashboard statistics
+- Manage parking locations
+- Add parking locations
+- Delete parking locations
+- Manage parking slots
+- Add parking slots
+- Delete parking slots
+- View reservations
+- Delete reservations
+
+---
+
+# Firebase Setup
+
+## Step 1
+
+Create a Firebase project.
+
+Go to:
+
+Firebase Console
+
+Create a new project.
+
+---
+
+## Step 2
+
+Enable Authentication.
+
+Firebase Console:
+
+Authentication
+→ Sign-in method
+→ Email/Password
+→ Enable
+
+---
+
+## Step 3
+
+Create Firestore Database.
+
+Firebase Console:
+
+Firestore Database
+→ Create database
+
+---
+
+## Step 4
+
+Create a Web App.
+
+Firebase:
+
+Project Settings
+→ Your Apps
+→ Web App
+
+Copy the Firebase configuration.
+
+Open:
+
+src/firebase.js
+
+Replace:
+
+YOUR_FIREBASE_API_KEY
+
+YOUR_PROJECT
+
+YOUR_PROJECT_ID
+
+YOUR_MESSAGING_SENDER_ID
+
+YOUR_APP_ID
+
+with your Firebase configuration.
+
+---
+
+# Important Firebase User Structure
+
+When a user registers, the system creates:
+
+users/{Firebase Auth UID}
+
+Example:
+
+users/
+    abc123xyz/
+
+Inside the document:
+
+{
+    name: "John",
+    email: "john@gmail.com",
+    role: "user"
+}
+
+The document ID must be the Firebase Authentication UID.
+
+---
+
+# Creating an Admin
+
+First create a normal account using Register.
+
+Then open:
+
+Firebase Console
+→ Firestore Database
+→ users
+
+Find the user's Firebase Authentication UID.
+
+The document should look like:
+
+users
+  └── USER_AUTH_UID
+
+Add:
+
+role: "admin"
+
+Example:
+
+{
+    name: "Admin",
+    email: "admin@gmail.com",
+    role: "admin"
+}
+
+Now login using that account.
+
+The system will open:
+
+/admin
+
+---
+
+# Collections
+
+The application uses these Firestore collections:
+
+users
+
+locations
+
+slots
+
+reservations
+
+---
+
+# Example Location
+
+locations:
+
+{
+    name: "Colombo City Parking",
+    address: "Colombo 03",
+    availableSlots: 25
+}
+
+---
+
+# Example Slot
+
+slots:
+
+{
+    locationId: "LOCATION_ID",
+    slotNumber: "A01",
+    type: "Standard",
+    price: 200,
+    status: "available"
+}
+
+---
+
+# Example Reservation
+
+reservations:
+
+{
+    userId: "USER_ID",
+    locationId: "LOCATION_ID",
+    slotId: "SLOT_ID",
+    locationName: "Colombo City Parking",
+    slotNumber: "A01",
+    date: "2026-09-25",
+    startTime: "08:00",
+    endTime: "10:00",
+    status: "confirmed",
+    paymentStatus: "mock_paid"
+}
+
+---
+
+# Install Dependencies
+
+Open the project folder in VS Code terminal.
+
+Run:
+
+npm install
+
+---
+
+# Run the Project
+
+Run:
+
+npm run dev
+
+Then open the Vite URL shown in the terminal.
+
+Usually:
+
+http://localhost:5173
+
+---
+
+# Build Project
+
+For production build:
+
+npm run build
+
+---
+
+# Preview Production Build
+
+npm run preview
+
+---
+
+# Firestore Rules
+
+Copy the content from:
+
+firestore.rules
+
+to:
+
+Firebase Console
+→ Firestore Database
+→ Rules
+
+Then publish the rules.
+
+---
+
+# Project Structure
+
+Smart-Parking-Blue-React/
+
+├── package.json
+
+├── index.html
+
+├── firestore.rules
+
+├── README.md
+
+│
+
+└── src/
+
+    ├── firebase.js
+
+    ├── main.jsx
+
+    └── style.css
+
+---
+
+# Project UI
+
+The interface uses:
+
+- Blue
+- White
+- Light blue
+- Navy
+
+The design includes:
+
+- Rounded cards
+- Modern buttons
+- Large hero section
+- Responsive navigation
+- Parking visual
+- Mobile responsive layout
+- Dashboard cards
+- Reservation cards
+
+---
+
+# Important Note
+
+The payment section is currently a mock payment/confirmation process.
+
+A real payment gateway can be integrated later.
+
+For the final version, transaction-based reservation locking should be added to prevent two users from reserving the same parking slot at the same time.
