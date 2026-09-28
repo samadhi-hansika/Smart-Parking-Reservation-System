@@ -8,8 +8,7 @@ import {
   Navigate,
   Link,
   useNavigate,
-  useLocation,
-  useParams
+  useLocation
 } from "react-router-dom";
 
 import {
@@ -23,21 +22,12 @@ import {
   doc,
   getDoc,
   setDoc,
-  serverTimestamp,
-  collection,
-  getDocs,
-  addDoc,
-  deleteDoc,
-  updateDoc,
-  query,
-  where
+  serverTimestamp
 } from "firebase/firestore";
 
 import {
   CarFront,
   MapPin,
-  Info,
-  Settings,
   Mail,
   CircleUserRound,
   Menu,
@@ -45,18 +35,17 @@ import {
   ArrowRight,
   Search,
   Play,
+  Star,
+  TrendingUp,
+  Apple,
   ShieldCheck,
   Clock3,
   Leaf,
   Building2,
-  CalendarCheck,
   Eye,
   EyeOff,
   LockKeyhole,
-  UserRound,
-  ChevronLeft,
-  Trash2,
-  Plus
+  UserRound
 } from "lucide-react";
 
 import { auth, db } from "./firebase";
@@ -90,7 +79,7 @@ function Btn({
 
 /* navbar */
 
-function Navbar({ user, role }) {
+function Navbar({ user }) {
   const [open, setOpen] = useState(false);
 
   const navigate = useNavigate();
@@ -221,8 +210,8 @@ function Home({ user }) {
             <div className="trust">
 
               <span>
-                <span className="avatars">● ● ●</span>
-                <span><b>★★★★★</b><br />Join 50k+ happy drivers</span>
+                <span className="avatars" aria-hidden="true"><i /><i /><i /></span>
+                <span className="driver-rating"><b aria-label="Rated five out of five">{[1, 2, 3, 4, 5].map((star) => <Star key={star} />)}</b><br />Join 50k+ happy drivers</span>
               </span>
 
             </div>
@@ -264,7 +253,7 @@ function Home({ user }) {
 
                       <b>{location}</b>
 
-                      <small>${(12 - index * 2) / 10}.00 · Available</small>
+                      <small>${(12 - index * 2) / 10}.00 &middot; Available</small>
 
                     </div>
 
@@ -281,7 +270,7 @@ function Home({ user }) {
             <div className="availability-card">
               <small>Slots Available</small>
               <strong>12,482</strong>
-              <span>↑ 12% this week</span>
+              <span><TrendingUp aria-hidden="true" /> 12% this week</span>
             </div>
 
           </div>
@@ -311,7 +300,7 @@ function Home({ user }) {
 
             <p>
               Our system is designed to make parking easier,
-              safer and more efficient for everyone — from
+              safer and more efficient for everyone, from
               everyday drivers to parking administrators.
             </p>
 
@@ -353,9 +342,9 @@ function Home({ user }) {
         <div>
           <h2>Ready to transform your<br />parking experience?</h2>
           <p>Download our mobile app today and get 20% off your first reservation. Available on iOS and Android.</p>
-          <div className="store-buttons"><button> &nbsp; App Store</button><button>▶ &nbsp; Google Play</button></div>
+          <div className="store-buttons"><button><Apple aria-hidden="true" /> App Store</button><button><Play aria-hidden="true" /> Google Play</button></div>
         </div>
-        <div className="phone-pair"><div>⌖<br /><small>Find a Parking</small></div><div>⌖<br /><small>Reserve a Spot</small></div></div>
+        <div className="phone-pair"><div><MapPin aria-hidden="true" /><br /><small>Find Parking</small></div><div><CarFront aria-hidden="true" /><br /><small>Reserve a Spot</small></div></div>
       </section>
 
       {/* HOW IT WORKS */}
@@ -440,7 +429,7 @@ function Home({ user }) {
           </div>
 
           <Btn
-            to={user ? "/locations" : "/register"}
+            to={user ? "/#about" : "/register"}
             white
           >
             Get Started
@@ -471,7 +460,7 @@ function Home({ user }) {
           </div>
 
           <p>
-            © 2026 Smart Parking Reservation System.
+            &copy; 2026 Smart Parking Reservation System.
           </p>
 
         </div>
@@ -525,6 +514,7 @@ function Step({ n, i, t, d }) {
 function Auth({ register = false }) {
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [form, setForm] = useState({
     name: "",
@@ -563,39 +553,40 @@ function Auth({ register = false }) {
           }
         );
 
-        navigate("/dashboard");
+        await signOut(auth);
+        navigate("/login", {
+          replace: true,
+          state: { registered: true }
+        });
 
       } else {
 
-        const result =
-          await signInWithEmailAndPassword(
-            auth,
-            form.email,
-            form.password
-          );
+        const result = await signInWithEmailAndPassword(
+          auth,
+          form.email,
+          form.password
+        );
 
-        const userDocument =
-          await getDoc(
-            doc(db, "users", result.user.uid)
-          );
-
-        if (
-          userDocument.exists() &&
-          userDocument.data().role === "admin"
-        ) {
-          navigate("/admin");
-        } else {
-          navigate("/dashboard");
-        }
+        const profile = await getDoc(doc(db, "users", result.user.uid));
+        const role = profile.exists() ? profile.data().role : "user";
+        navigate(role === "admin" ? "/admin-dashboard" : "/user-dashboard");
       }
 
     } catch (error) {
 
       console.error(error);
 
-      setError(
-        "Invalid details. Please check your information and try again."
-      );
+      if (error.code === "auth/email-already-in-use") {
+        setError("This email already has an account. Please log in instead.");
+      } else if (error.code === "auth/weak-password") {
+        setError("Choose a password with at least 6 characters.");
+      } else if (error.code === "auth/invalid-email") {
+        setError("Enter a valid email address.");
+      } else if (error.code === "permission-denied" || error.code === "firestore/permission-denied") {
+        setError("Your account was created, but its profile could not be saved. Please contact the administrator.");
+      } else {
+        setError(error.message || "Unable to complete registration. Please try again.");
+      }
 
     }
   };
@@ -624,6 +615,12 @@ function Auth({ register = false }) {
             ? "Join Smart Parking and reserve your space easily."
             : "Login to manage your smart parking reservations."}
         </p>
+
+        {location.state?.registered && !register && (
+          <div className="success" role="status">
+            Account created successfully. Please log in.
+          </div>
+        )}
 
         {error && (
           <div className="error">
@@ -693,7 +690,7 @@ function Auth({ register = false }) {
             minLength="6"
             type={showPassword ? "text" : "password"}
             value={form.password}
-            placeholder="••••••••"
+            placeholder="Enter your password"
             onChange={(event) =>
               setForm({
                 ...form,
@@ -747,7 +744,7 @@ function Auth({ register = false }) {
           className="back"
           to="/"
         >
-          ← Back to home
+          Back to home
         </Link>
 
       </form>
@@ -756,1478 +753,64 @@ function Auth({ register = false }) {
   );
 }
 
-/* LOCATIONS */
-
-function Locations() {
-
-  const [locations, setLocations] = useState([]);
-
-  const [search, setSearch] = useState("");
-
-  useEffect(() => {
-
-    const loadLocations = async () => {
-
-      try {
-
-        const snapshot =
-          await getDocs(
-            collection(db, "locations")
-          );
-
-        setLocations(
-          snapshot.docs.map((item) => ({
-            id: item.id,
-            ...item.data()
-          }))
-        );
-
-      } catch (error) {
-
-        console.error(error);
-
-      }
-
-    };
-
-    loadLocations();
-
-  }, []);
-
-  const filteredLocations =
-    locations.filter((location) =>
-      `${location.name} ${location.address}`
-        .toLowerCase()
-        .includes(search.toLowerCase())
-    );
-
-  return (
-
-    <Page
-      title="Find Your Parking Location"
-      label="PARKING LOCATIONS"
-      text="Choose a location and view its available parking slots."
-    >
-
-      <div className="search">
-
-        <Search />
-
-        <input
-          placeholder="Search by location name or address..."
-          value={search}
-          onChange={(event) =>
-            setSearch(event.target.value)
-          }
-        />
-
-      </div>
-
-      <div className="locGrid">
-
-        {filteredLocations.map((location) => (
-
-          <Link
-            className="locCard"
-            to={`/slots/${location.id}`}
-            key={location.id}
-          >
-
-            <div className="locCover">
-              <MapPin />
-            </div>
-
-            <div className="locBody">
-
-              <h3>
-                {location.name}
-              </h3>
-
-              <p>
-                {location.address ||
-                  "Address not available"}
-              </p>
-
-              <b>
-
-                {location.availableSlots || 0}
-                {" "}available slots
-
-                <ArrowRight />
-
-              </b>
-
-            </div>
-
-          </Link>
-
-        ))}
-
-        {!filteredLocations.length && (
-          <Empty>
-            No parking locations found.
-          </Empty>
-        )}
-
-      </div>
-
-    </Page>
-  );
-}
-
-/*  PARKING SLOTS */
-
-function Slots() {
-
-  const { id } = useParams();
-
-  const [location, setLocation] = useState(null);
-
-  const [slots, setSlots] = useState([]);
-
-  useEffect(() => {
-
-    const loadData = async () => {
-
-      try {
-
-        const [locationSnapshot, slotsSnapshot] =
-          await Promise.all([
-
-            getDoc(
-              doc(db, "locations", id)
-            ),
-
-            getDocs(
-              query(
-                collection(db, "slots"),
-                where("locationId", "==", id)
-              )
-            )
-
-          ]);
-
-        if (locationSnapshot.exists()) {
-
-          setLocation({
-            id: locationSnapshot.id,
-            ...locationSnapshot.data()
-          });
-
-        }
-
-        setSlots(
-          slotsSnapshot.docs.map((item) => ({
-            id: item.id,
-            ...item.data()
-          }))
-        );
-
-      } catch (error) {
-
-        console.error(error);
-
-      }
-
-    };
-
-    loadData();
-
-  }, [id]);
-
-  return (
-
-    <Page
-      back="/locations"
-      title={location?.name || "Parking Slots"}
-      label="AVAILABLE PARKING"
-      text={
-        location?.address ||
-        "Select an available parking slot."
-      }
-    >
-
-      <div className="slotGrid">
-
-        {slots.map((slot) => {
-
-          const available =
-            slot.status !== "inactive" &&
-            slot.status !== "maintenance";
-
-          return (
-
-            <div
-              className={`slot ${
-                available ? "" : "disabled"
-              }`}
-              key={slot.id}
-            >
-
-              <strong>
-                {slot.slotNumber}
-              </strong>
-
-              <div>
-
-                <h3>
-                  Parking Slot {slot.slotNumber}
-                </h3>
-
-                <p>
-                  {slot.type || "Standard"}
-                  {" • "}
-                  LKR {slot.price || 0}/hour
-                </p>
-
-              </div>
-
-              <span>
-                {available
-                  ? "Available"
-                  : "Unavailable"}
-              </span>
-
-              {available && (
-
-                <Link
-                  className="btn primary small"
-                  to={`/reserve/${id}/${slot.id}`}
-                >
-                  Reserve
-                </Link>
-
-              )}
-
-            </div>
-          );
-        })}
-
-        {!slots.length && (
-          <Empty>
-            No slots have been added yet.
-          </Empty>
-        )}
-
-      </div>
-
-    </Page>
-  );
-}
-
-/*  RESERVATION*/
-
-function Reserve() {
-
-  const { id, slotId } = useParams();
-
+function DashboardNavbar({ user, admin = false }) {
   const navigate = useNavigate();
 
-  const [location, setLocation] = useState(null);
-
-  const [slot, setSlot] = useState(null);
-
-  const [form, setForm] = useState({
-    date: "",
-    start: "08:00",
-    end: "09:00"
-  });
-
-  useEffect(() => {
-
-    const loadData = async () => {
-
-      try {
-
-        const [locationSnapshot, slotSnapshot] =
-          await Promise.all([
-
-            getDoc(
-              doc(db, "locations", id)
-            ),
-
-            getDoc(
-              doc(db, "slots", slotId)
-            )
-
-          ]);
-
-        if (locationSnapshot.exists()) {
-
-          setLocation(
-            locationSnapshot.data()
-          );
-
-        }
-
-        if (slotSnapshot.exists()) {
-
-          setSlot({
-            id: slotSnapshot.id,
-            ...slotSnapshot.data()
-          });
-
-        }
-
-      } catch (error) {
-
-        console.error(error);
-
-      }
-
-    };
-
-    loadData();
-
-  }, [id, slotId]);
-
-  const handleSubmit = (event) => {
-
-    event.preventDefault();
-
-    if (form.end <= form.start) {
-
-      alert(
-        "End time must be after start time."
-      );
-
-      return;
-    }
-
-    const reservation = {
-
-      locationId: id,
-
-      slotId,
-
-      locationName:
-        location?.name || "",
-
-      slotNumber:
-        slot?.slotNumber || "",
-
-      date:
-        form.date,
-
-      startTime:
-        form.start,
-
-      endTime:
-        form.end,
-
-      price:
-        slot?.price || 0
-    };
-
-    sessionStorage.setItem(
-      "pendingReservation",
-      JSON.stringify(reservation)
-    );
-
-    navigate("/reservations");
+  const handleLogout = async () => {
+    await signOut(auth);
+    navigate("/");
   };
 
   return (
-
-    <Page
-      back={`/slots/${id}`}
-      title="Make a Reservation"
-      label="RESERVATION"
-      text={`${location?.name || ""} • Slot ${
-        slot?.slotNumber || ""
-      }`}
-    >
-
-      <form
-        className="reserveCard"
-        onSubmit={handleSubmit}
-      >
-
-        <label>
-          Date
-
-          <input
-            type="date"
-            required
-            min={
-              new Date()
-                .toISOString()
-                .slice(0, 10)
-            }
-            value={form.date}
-            onChange={(event) =>
-              setForm({
-                ...form,
-                date: event.target.value
-              })
-            }
-          />
-
-        </label>
-
-        <div className="two">
-
-          <label>
-            Start Time
-
-            <input
-              type="time"
-              value={form.start}
-              onChange={(event) =>
-                setForm({
-                  ...form,
-                  start: event.target.value
-                })
-              }
-            />
-
-          </label>
-
-          <label>
-            End Time
-
-            <input
-              type="time"
-              value={form.end}
-              onChange={(event) =>
-                setForm({
-                  ...form,
-                  end: event.target.value
-                })
-              }
-            />
-
-          </label>
-
+    <header className="header dashboard-header">
+      <div className="nav">
+        <a className="brand" href="/" onClick={(event) => { event.preventDefault(); navigate(admin ? "/admin-dashboard" : "/user-dashboard"); }}>
+          <span className="brandIcon">{admin ? <ShieldCheck /> : <CarFront />}</span>
+          <b className="brandName"><span className="brandNamePark">Park</span><span className="brandNameLink">Link</span></b>
+        </a>
+        <div className="dashboard-nav-right">
+          <span className="dashboard-role">{admin ? "ADMIN DASHBOARD" : "USER DASHBOARD"}</span>
+          {user?.email && <span className="dashboard-email">{user.email}</span>}
+          <button className="btn outline navbtn" type="button" onClick={handleLogout}>Logout</button>
         </div>
+      </div>
+    </header>
+  );
+}
 
-        <div className="summary">
-
-          Estimated fee
-
-          <b>
-            LKR {slot?.price || 0} / hour
-          </b>
-
+function UserDashboard({ user }) {
+  return (
+    <>
+      <DashboardNavbar user={user} />
+      <main className="dashboard-page">
+        <div className="container">
+          <span className="label">USER DASHBOARD</span>
+          <h1>Welcome to ParkLink</h1>
         </div>
-
-        <Btn className="full">
-          Continue Reservation
-        </Btn>
-
-      </form>
-
-    </Page>
+      </main>
+    </>
   );
 }
 
-/* my reservations */
-
-function Reservations() {
-
-  const [reservations, setReservations] =
-    useState([]);
-
-  const [pending, setPending] =
-    useState(null);
-
-  const loadReservations = async () => {
-
-    if (!auth.currentUser) {
-      return;
-    }
-
-    try {
-
-      const snapshot =
-        await getDocs(
-          query(
-            collection(db, "reservations"),
-            where(
-              "userId",
-              "==",
-              auth.currentUser.uid
-            )
-          )
-        );
-
-      setReservations(
-        snapshot.docs.map((item) => ({
-          id: item.id,
-          ...item.data()
-        }))
-      );
-
-    } catch (error) {
-
-      console.error(error);
-
-    }
-  };
-
-  useEffect(() => {
-
-    loadReservations();
-
-    const pendingData =
-      sessionStorage.getItem(
-        "pendingReservation"
-      );
-
-    if (pendingData) {
-
-      setPending(
-        JSON.parse(pendingData)
-      );
-
-    }
-
-  }, []);
-
-  const confirmReservation = async () => {
-
-    if (!pending || !auth.currentUser) {
-      return;
-    }
-
-    try {
-
-      await addDoc(
-        collection(db, "reservations"),
-        {
-          ...pending,
-
-          userId:
-            auth.currentUser.uid,
-
-          status: "confirmed",
-
-          paymentStatus: "mock_paid",
-
-          createdAt:
-            serverTimestamp()
-        }
-      );
-
-      sessionStorage.removeItem(
-        "pendingReservation"
-      );
-
-      setPending(null);
-
-      await loadReservations();
-
-    } catch (error) {
-
-      console.error(error);
-
-      alert(
-        "Unable to confirm reservation."
-      );
-
-    }
-  };
-
-  const cancelReservation = async (id) => {
-
-    const confirmCancel =
-      window.confirm(
-        "Are you sure you want to cancel this reservation?"
-      );
-
-    if (!confirmCancel) {
-      return;
-    }
-
-    try {
-
-      await updateDoc(
-        doc(db, "reservations", id),
-        {
-          status: "cancelled"
-        }
-      );
-
-      await loadReservations();
-
-    } catch (error) {
-
-      console.error(error);
-
-      alert(
-        "Unable to cancel reservation."
-      );
-
-    }
-  };
-
+function AdminDashboard({ user }) {
   return (
-
-    <Page
-      title="My Reservations"
-      label="MY BOOKINGS"
-      text="View and manage your parking reservations."
-    >
-
-      {pending && (
-
-        <div className="pending">
-
-          <div>
-
-            <b>
-              Reservation ready to confirm
-            </b>
-
-            <p>
-              {pending.locationName}
-              {" • "}
-              Slot {pending.slotNumber}
-              {" • "}
-              {pending.date}
-              {" • "}
-              {pending.startTime}
-              {" – "}
-              {pending.endTime}
-            </p>
-
-          </div>
-
-          <Btn onClick={confirmReservation}>
-            Confirm Reservation
-          </Btn>
-
+    <>
+      <DashboardNavbar user={user} admin />
+      <main className="dashboard-page">
+        <div className="container">
+          <span className="label">ADMIN DASHBOARD</span>
+          <h1>Welcome, Admin</h1>
         </div>
-
-      )}
-
-      <div className="resList">
-
-        {reservations.map((reservation) => (
-
-          <div
-            className="resRow"
-            key={reservation.id}
-          >
-
-            <div className="round">
-              <CarFront />
-            </div>
-
-            <div className="grow">
-
-              <b>
-                {reservation.locationName ||
-                  "Parking Location"}
-              </b>
-
-              <p>
-                Slot {reservation.slotNumber || "—"}
-              </p>
-
-            </div>
-
-            <div>
-
-              <b>
-                {reservation.date}
-              </b>
-
-              <small>
-                {reservation.startTime}
-                {" – "}
-                {reservation.endTime}
-              </small>
-
-            </div>
-
-            <span className="status">
-              {reservation.status}
-            </span>
-
-            {reservation.status ===
-              "confirmed" && (
-
-              <button
-                className="delete"
-                onClick={() =>
-                  cancelReservation(
-                    reservation.id
-                  )
-                }
-              >
-                <Trash2 />
-              </button>
-
-            )}
-
-          </div>
-
-        ))}
-
-        {!reservations.length &&
-          !pending && (
-
-            <Empty>
-              No reservations yet.
-            </Empty>
-
-          )}
-
-      </div>
-
-    </Page>
+      </main>
+    </>
   );
 }
 
-/* user dashboard */
-
-function Dashboard() {
-
-  return (
-
-    <Page
-      title="Welcome to Smart Parking"
-      label="USER DASHBOARD"
-      text="Find a space, reserve it, and park without the stress."
-    >
-
-      <div className="quick">
-
-        <Link to="/locations">
-
-          <MapPin />
-
-          Find Parking Locations
-
-          <ArrowRight />
-
-        </Link>
-
-        <Link to="/reservations">
-
-          <CalendarCheck />
-
-          My Reservations
-
-          <ArrowRight />
-
-        </Link>
-
-      </div>
-
-    </Page>
-  );
-}
-
-/* admin dashboard */
-
-function Admin() {
-
-  const [counts, setCounts] =
-    useState({
-      locations: 0,
-      slots: 0,
-      reservations: 0,
-      users: 0
-    });
-
-  useEffect(() => {
-
-    const loadCounts = async () => {
-
-      try {
-
-        const [
-          locations,
-          slots,
-          reservations,
-          users
-        ] = await Promise.all([
-
-          getDocs(
-            collection(db, "locations")
-          ),
-
-          getDocs(
-            collection(db, "slots")
-          ),
-
-          getDocs(
-            collection(db, "reservations")
-          ),
-
-          getDocs(
-            collection(db, "users")
-          )
-
-        ]);
-
-        setCounts({
-
-          locations: locations.size,
-
-          slots: slots.size,
-
-          reservations:
-            reservations.size,
-
-          users: users.size
-
-        });
-
-      } catch (error) {
-
-        console.error(error);
-
-      }
-
-    };
-
-    loadCounts();
-
-  }, []);
-
-  return (
-
-    <Page
-      title="Parking Management Dashboard"
-      label="ADMINISTRATION"
-      text="Manage locations, parking slots and reservations."
-    >
-
-      <div className="stats">
-
-        <Stat
-          v={counts.locations}
-          t="Locations"
-          i={<MapPin />}
-        />
-
-        <Stat
-          v={counts.slots}
-          t="Parking Slots"
-          i={<CarFront />}
-        />
-
-        <Stat
-          v={counts.reservations}
-          t="Reservations"
-          i={<CalendarCheck />}
-        />
-
-        <Stat
-          v={counts.users}
-          t="Registered Users"
-          i={<CircleUserRound />}
-        />
-
-      </div>
-
-      <div className="adminLinks">
-
-        <Link to="/admin/locations">
-
-          <MapPin />
-
-          Manage Locations
-
-          <ArrowRight />
-
-        </Link>
-
-        <Link to="/admin/slots">
-
-          <CarFront />
-
-          Manage Parking Slots
-
-          <ArrowRight />
-
-        </Link>
-
-        <Link to="/admin/reservations">
-
-          <CalendarCheck />
-
-          Manage Reservations
-
-          <ArrowRight />
-
-        </Link>
-
-      </div>
-
-    </Page>
-  );
-}
-
-/* admin management */
-
-function Manage({ type }) {
-
-  const [items, setItems] =
-    useState([]);
-
-  const [locations, setLocations] =
-    useState([]);
-
-  const [form, setForm] =
-    useState({});
-
-  const loadData = async () => {
-
-    try {
-
-      const snapshot =
-        await getDocs(
-          collection(db, type)
-        );
-
-      setItems(
-        snapshot.docs.map((item) => ({
-          id: item.id,
-          ...item.data()
-        }))
-      );
-
-      if (type === "slots") {
-
-        const locationSnapshot =
-          await getDocs(
-            collection(db, "locations")
-          );
-
-        setLocations(
-          locationSnapshot.docs.map(
-            (item) => ({
-              id: item.id,
-              ...item.data()
-            })
-          )
-        );
-
-      }
-
-    } catch (error) {
-
-      console.error(error);
-
-    }
-  };
-
-  useEffect(() => {
-
-    loadData();
-
-  }, [type]);
-
-  const handleAdd = async (event) => {
-
-    event.preventDefault();
-
-    try {
-
-      if (type === "locations") {
-
-        await addDoc(
-          collection(db, "locations"),
-          {
-            name: form.name,
-            address: form.address,
-            availableSlots:
-              Number(form.availableSlots || 0),
-            createdAt:
-              serverTimestamp()
-          }
-        );
-
-      } else if (type === "slots") {
-
-        await addDoc(
-          collection(db, "slots"),
-          {
-            locationId:
-              form.locationId,
-
-            slotNumber:
-              form.slotNumber,
-
-            type:
-              form.type || "Standard",
-
-            price:
-              Number(form.price || 0),
-
-            status:
-              "available",
-
-            createdAt:
-              serverTimestamp()
-          }
-        );
-
-      }
-
-      setForm({});
-
-      await loadData();
-
-    } catch (error) {
-
-      console.error(error);
-
-      alert(
-        "Unable to add this item."
-      );
-
-    }
-  };
-
-  const handleDelete = async (id) => {
-
-    const confirmed =
-      window.confirm(
-        "Are you sure you want to delete this item?"
-      );
-
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-
-      await deleteDoc(
-        doc(db, type, id)
-      );
-
-      await loadData();
-
-    } catch (error) {
-
-      console.error(error);
-
-      alert(
-        "Unable to delete this item."
-      );
-
-    }
-  };
-
-  const title =
-    type === "locations"
-      ? "Manage Locations"
-      : type === "slots"
-      ? "Manage Parking Slots"
-      : "Manage Reservations";
-
-  return (
-
-    <Page
-      title={title}
-      label="ADMIN"
-      text="Maintain system data."
-    >
-
-      <div className="manage">
-
-        {type !== "reservations" && (
-
-          <form
-            className="formbox"
-            onSubmit={handleAdd}
-          >
-
-            {type === "locations" && (
-              <>
-
-                <label>
-
-                  Name
-
-                  <input
-                    required
-                    value={form.name || ""}
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        name: event.target.value
-                      })
-                    }
-                  />
-
-                </label>
-
-                <label>
-
-                  Address
-
-                  <input
-                    required
-                    value={form.address || ""}
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        address:
-                          event.target.value
-                      })
-                    }
-                  />
-
-                </label>
-
-                <label>
-
-                  Available Slots
-
-                  <input
-                    type="number"
-                    min="0"
-                    value={
-                      form.availableSlots || 0
-                    }
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        availableSlots:
-                          event.target.value
-                      })
-                    }
-                  />
-
-                </label>
-
-              </>
-            )}
-
-            {type === "slots" && (
-              <>
-
-                <label>
-
-                  Location
-
-                  <select
-                    required
-                    value={
-                      form.locationId || ""
-                    }
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        locationId:
-                          event.target.value
-                      })
-                    }
-                  >
-
-                    <option value="">
-                      Select Location
-                    </option>
-
-                    {locations.map(
-                      (location) => (
-
-                        <option
-                          key={location.id}
-                          value={location.id}
-                        >
-                          {location.name}
-                        </option>
-
-                      )
-                    )}
-
-                  </select>
-
-                </label>
-
-                <label>
-
-                  Slot Number
-
-                  <input
-                    required
-                    placeholder="A01"
-                    value={
-                      form.slotNumber || ""
-                    }
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        slotNumber:
-                          event.target.value
-                      })
-                    }
-                  />
-
-                </label>
-
-                <label>
-
-                  Slot Type
-
-                  <select
-                    value={
-                      form.type ||
-                      "Standard"
-                    }
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        type:
-                          event.target.value
-                      })
-                    }
-                  >
-
-                    <option>
-                      Standard
-                    </option>
-
-                    <option>
-                      VIP
-                    </option>
-
-                    <option>
-                      Disabled
-                    </option>
-
-                    <option>
-                      EV Charging
-                    </option>
-
-                  </select>
-
-                </label>
-
-                <label>
-
-                  Price per Hour
-
-                  <input
-                    type="number"
-                    min="0"
-                    value={
-                      form.price || 0
-                    }
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        price:
-                          event.target.value
-                      })
-                    }
-                  />
-
-                </label>
-
-              </>
-            )}
-
-            <Btn>
-              <Plus />
-              Add
-            </Btn>
-
-          </form>
-
-        )}
-
-        <div className="manageList">
-
-          {items.map((item) => (
-
-            <div
-              className="manageRow"
-              key={item.id}
-            >
-
-              <div className="round">
-                {type === "locations"
-                  ? <MapPin />
-                  : type === "slots"
-                  ? <CarFront />
-                  : <CalendarCheck />}
-              </div>
-
-              <div className="grow">
-
-                <b>
-
-                  {type === "locations"
-                    ? item.name
-                    : type === "slots"
-                    ? `Slot ${item.slotNumber}`
-                    : item.locationName ||
-                      "Reservation"}
-
-                </b>
-
-                <p>
-
-                  {type === "locations"
-                    ? item.address
-                    : type === "slots"
-                    ? `${item.type || "Standard"} • LKR ${
-                        item.price || 0
-                      }/hour`
-                    : `${item.date || ""} ${
-                        item.startTime || ""
-                      } – ${
-                        item.endTime || ""
-                      }`}
-
-                </p>
-
-              </div>
-
-              <button
-                className="delete"
-                onClick={() =>
-                  handleDelete(item.id)
-                }
-              >
-                <Trash2 />
-              </button>
-
-            </div>
-
-          ))}
-
-          {!items.length && (
-
-            <Empty>
-              No records found.
-            </Empty>
-
-          )}
-
-        </div>
-
-      </div>
-
-    </Page>
-  );
-}
-
-/* stat component*/
-
-function Stat({ v, t, i }) {
-
-  return (
-
-    <div className="stat">
-
-      <div>
-        {i}
-      </div>
-
-      <strong>
-        {v}
-      </strong>
-
-      <span>
-        {t}
-      </span>
-
-    </div>
-  );
-}
-
-/* page layout*/
-
-function Page({
-  title,
-  label,
-  text,
-  children,
-  back
-}) {
-
-  return (
-
-    <main className="app">
-
-      <div className="container">
-
-        {back && (
-
-          <Link
-            className="backLink"
-            to={back}
-          >
-            <ChevronLeft />
-            Back
-          </Link>
-
-        )}
-
-        <div className="pageTitle">
-
-          <div>
-
-            <div className="label">
-              {label}
-            </div>
-
-            <h1>
-              {title}
-            </h1>
-
-            <p>
-              {text}
-            </p>
-
-          </div>
-
-        </div>
-
-        {children}
-
-      </div>
-
-    </main>
-  );
-}
-
-/* empty */
-
-function Empty({ children }) {
-
-  return (
-    <div className="empty">
-      {children}
-    </div>
-  );
-}
-
-/* protected route */
-
-function Protected({
-  user,
-  role,
-  admin = false,
-  children
-}) {
-
-  if (!user) {
-
-    return (
-      <Navigate to="/login" />
-    );
+function RoleRoute({ user, role, requiredRole, children }) {
+  if (!user) return <Navigate to="/login" replace />;
+  if (role !== requiredRole) {
+    return <Navigate to={role === "admin" ? "/admin-dashboard" : "/user-dashboard"} replace />;
   }
-
-  if (
-    admin &&
-    role !== "admin"
-  ) {
-
-    return (
-      <Navigate to="/dashboard" />
-    );
-  }
-
   return children;
 }
 
@@ -2244,63 +827,29 @@ function App() {
   const [loading, setLoading] =
     useState(true);
 
+  const { pathname } = useLocation();
+
   useEffect(() => {
 
     const unsubscribe =
-      onAuthStateChanged(
-        auth,
-        async (currentUser) => {
+      onAuthStateChanged(auth, async (currentUser) => {
+        setLoading(true);
+        setUser(currentUser);
 
-          try {
-
-            setUser(currentUser);
-
-            if (currentUser) {
-
-              const userSnapshot =
-                await getDoc(
-                  doc(
-                    db,
-                    "users",
-                    currentUser.uid
-                  )
-                );
-
-              if (
-                userSnapshot.exists()
-              ) {
-
-                setRole(
-                  userSnapshot.data().role ||
-                  "user"
-                );
-
-              } else {
-
-                setRole("user");
-
-              }
-
-            } else {
-
-              setRole("");
-
-            }
-
-          } catch (error) {
-
-            console.error(error);
-
+        try {
+          if (currentUser) {
+            const profile = await getDoc(doc(db, "users", currentUser.uid));
+            setRole(profile.exists() ? profile.data().role || "user" : "user");
+          } else {
             setRole("");
-
-          } finally {
-
-            setLoading(false);
-
           }
-
+        } catch (error) {
+          console.error(error);
+          setRole("user");
+        } finally {
+          setLoading(false);
         }
-      );
+      });
 
     return unsubscribe;
 
@@ -2318,10 +867,7 @@ function App() {
   return (
 
     <>
-      <Navbar
-        user={user}
-        role={role}
-      />
+      {!pathname.endsWith("-dashboard") && <Navbar user={user} />}
 
       <Routes>
 
@@ -2329,9 +875,9 @@ function App() {
 
         <Route
           path="/"
-          element={
-            <Home user={user} />
-          }
+          element={user
+            ? <Navigate to={role === "admin" ? "/admin-dashboard" : "/user-dashboard"} replace />
+            : <Home user={user} />}
         />
 
         <Route
@@ -2348,119 +894,21 @@ function App() {
           }
         />
 
-        {/* USER */}
-
         <Route
-          path="/dashboard"
+          path="/user-dashboard"
           element={
-            <Protected
-              user={user}
-              role={role}
-            >
-              <Dashboard />
-            </Protected>
+            <RoleRoute user={user} role={role} requiredRole="user">
+              <UserDashboard user={user} />
+            </RoleRoute>
           }
         />
 
         <Route
-          path="/locations"
+          path="/admin-dashboard"
           element={
-            <Protected
-              user={user}
-              role={role}
-            >
-              <Locations />
-            </Protected>
-          }
-        />
-
-        <Route
-          path="/slots/:id"
-          element={
-            <Protected
-              user={user}
-              role={role}
-            >
-              <Slots />
-            </Protected>
-          }
-        />
-
-        <Route
-          path="/reserve/:id/:slotId"
-          element={
-            <Protected
-              user={user}
-              role={role}
-            >
-              <Reserve />
-            </Protected>
-          }
-        />
-
-        <Route
-          path="/reservations"
-          element={
-            <Protected
-              user={user}
-              role={role}
-            >
-              <Reservations />
-            </Protected>
-          }
-        />
-
-        {/* ADMIN */}
-
-        <Route
-          path="/admin"
-          element={
-            <Protected
-              user={user}
-              role={role}
-              admin
-            >
-              <Admin />
-            </Protected>
-          }
-        />
-
-        <Route
-          path="/admin/locations"
-          element={
-            <Protected
-              user={user}
-              role={role}
-              admin
-            >
-              <Manage type="locations" />
-            </Protected>
-          }
-        />
-
-        <Route
-          path="/admin/slots"
-          element={
-            <Protected
-              user={user}
-              role={role}
-              admin
-            >
-              <Manage type="slots" />
-            </Protected>
-          }
-        />
-
-        <Route
-          path="/admin/reservations"
-          element={
-            <Protected
-              user={user}
-              role={role}
-              admin
-            >
-              <Manage type="reservations" />
-            </Protected>
+            <RoleRoute user={user} role={role} requiredRole="admin">
+              <AdminDashboard user={user} />
+            </RoleRoute>
           }
         />
 

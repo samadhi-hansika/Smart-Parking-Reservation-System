@@ -4,17 +4,13 @@ service cloud.firestore {
 
   match /databases/{database}/documents {
 
-    /* ================================
-       CHECK USER LOGIN
-    ================================= */
+    /* CHECK USER LOGIN*/
 
     function signedIn() {
       return request.auth != null;
     }
 
-    /* ================================
-       CHECK ADMIN
-    ================================= */
+    /* CHECK ADMIN */
 
     function isAdmin() {
 
@@ -26,9 +22,7 @@ service cloud.firestore {
 
     }
 
-    /* ================================
-       USERS
-    ================================= */
+    /* USERS*/
 
     match /users/{uid} {
 
@@ -59,9 +53,7 @@ service cloud.firestore {
         if isAdmin();
     }
 
-    /* ================================
-       PARKING LOCATIONS
-    ================================= */
+    /*PARKING LOCATIONS */
 
     match /locations/{locationId} {
 
@@ -72,9 +64,7 @@ service cloud.firestore {
         if isAdmin();
     }
 
-    /* ================================
-       PARKING SLOTS
-    ================================= */
+    /*  PARKING SLOTS */
 
     match /slots/{slotId} {
 
@@ -85,9 +75,7 @@ service cloud.firestore {
         if isAdmin();
     }
 
-    /* ================================
-       RESERVATIONS
-    ================================= */
+    /*  RESERVATIONS*/
 
     match /reservations/{reservationId} {
 
