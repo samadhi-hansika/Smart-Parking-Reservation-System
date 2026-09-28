@@ -109,7 +109,7 @@ function Navbar({ user, role }) {
           </span>
 
           <span>
-            <b>ParkSmart</b>
+            <b className="brandName"><span className="brandNamePark">Park</span><span className="brandNameLink">Link</span></b>
           </span>
         </a>
 

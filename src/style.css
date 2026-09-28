@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
 
 :root {
   --blue: #0866e8;
@@ -21,7 +21,7 @@ html {
 
 body {
   margin: 0;
-  font-family: "Inter", Arial, sans-serif;
+  font-family: "Manrope", Arial, sans-serif;
   color: var(--text);
   background: white;
 }
@@ -1957,3 +1957,25 @@ footer { width:min(1160px, calc(100% - 72px)); margin:auto; padding:22px 0; }.fo
   .app-promo p { font-size: 12px; }
   .store-buttons button { padding: 10px 15px; font-size: 10px; }
 }
+
+
+/* Refined type and a gentle floating phone motion */
+.phone {
+  animation: phone-float 4.5s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes phone-float {
+  0%, 100% { transform: translateY(0) rotate(2deg); }
+  50% { transform: translateY(-12px) rotate(-1deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phone { animation: none; }
+}
+
+
+/* Two complementary type styles for the ParkLink wordmark */
+.brandName { display: inline-flex; align-items: baseline; gap: 0; }
+.brandNamePark { font-family: 'Manrope', Arial, sans-serif; font-weight: 800; }
+.brandNameLink { font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 700; letter-spacing: -0.6px; }
