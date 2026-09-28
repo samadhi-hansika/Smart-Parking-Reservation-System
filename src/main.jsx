@@ -151,11 +151,12 @@ function Navbar({ user, role }) {
             </>
           ) : (
             <>
-              <button className="login-link" type="button">Login</button>
+              <button className="login-link" type="button" onClick={() => { setOpen(false); navigate("/login"); }}>Login</button>
 
               <button
                 className="btn primary navbtn"
                 type="button"
+                onClick={() => { setOpen(false); navigate("/register"); }}
               >
                 Register
               </button>

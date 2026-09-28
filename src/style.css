@@ -1979,3 +1979,133 @@ footer { width:min(1160px, calc(100% - 72px)); margin:auto; padding:22px 0; }.fo
 .brandName { display: inline-flex; align-items: baseline; gap: 0; }
 .brandNamePark { font-family: 'Manrope', Arial, sans-serif; font-weight: 800; }
 .brandNameLink { font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 700; letter-spacing: -0.6px; }
+
+/* Login and registration form refresh */
+.auth {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: calc(100vh - 84px);
+  background:
+    radial-gradient(ellipse at 18% 18%, rgba(65, 151, 255, .16), transparent 34%),
+    radial-gradient(ellipse at 88% 82%, rgba(8, 102, 232, .12), transparent 32%),
+    linear-gradient(135deg, #f5f9ff 0%, #eaf3ff 52%, #f8fbff 100%);
+}
+
+.auth::before,
+.auth::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  border: 1px solid rgba(8, 102, 232, .09);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.auth::before {
+  width: 380px;
+  height: 380px;
+  top: -210px;
+  right: 8%;
+}
+
+.auth::after {
+  width: 520px;
+  height: 520px;
+  bottom: -350px;
+  left: 4%;
+}
+
+.authCard {
+  position: relative;
+  width: min(460px, 100%);
+  padding: 40px;
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: 26px;
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 28px 80px rgba(23, 68, 130, .14), 0 4px 14px rgba(23, 68, 130, .05);
+  backdrop-filter: blur(12px);
+}
+
+.authLogo {
+  width: 56px;
+  height: 56px;
+  border-radius: 17px;
+  box-shadow: 0 10px 24px rgba(8, 102, 232, .24);
+}
+
+.authCard h1 {
+  margin: 22px 0 7px;
+  color: var(--navy);
+  font-size: 30px;
+  letter-spacing: -.8px;
+}
+
+.authCard > p {
+  margin: 0 0 24px;
+  line-height: 1.65;
+}
+
+.authCard label {
+  margin: 17px 0 8px;
+  color: #263b5e;
+  font-size: 12px;
+}
+
+.input {
+  min-height: 49px;
+  border: 1px solid #dce7f5;
+  border-radius: 12px;
+  background: #fbfdff;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+.input:focus-within {
+  border-color: #438cf0;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(8, 102, 232, .1);
+}
+
+.input input {
+  min-width: 0;
+  color: var(--navy);
+  background: transparent;
+}
+
+.input input::placeholder {
+  color: #9aa9bd;
+}
+
+.authCard .btn {
+  min-height: 49px;
+  margin-top: 22px;
+  border-radius: 12px;
+  font-size: 14px;
+  box-shadow: 0 10px 22px rgba(8, 102, 232, .2);
+}
+
+.authBottom {
+  margin: 22px 0 0 !important;
+  color: #66758c;
+}
+
+.authBottom a:hover,
+.back:hover {
+  color: #064db7;
+  text-decoration: underline;
+}
+
+.error {
+  margin: 12px 0;
+  padding: 11px 13px;
+  border: 1px solid #ffd7dc;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 520px) {
+  .auth { min-height: calc(100vh - 68px); padding: 24px 16px; }
+  .authCard { padding: 30px 23px; border-radius: 22px; }
+  .authCard h1 { font-size: 27px; }
+}
