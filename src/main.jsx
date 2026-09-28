@@ -8,6 +8,7 @@ import {
   Navigate,
   Link,
   useNavigate,
+  useLocation,
   useParams
 } from "react-router-dom";
 
@@ -93,6 +94,7 @@ function Navbar({ user, role }) {
   const [open, setOpen] = useState(false);
 
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -103,7 +105,7 @@ function Navbar({ user, role }) {
     <header className="header">
       <div className="nav">
 
-        <a className="brand" href="#top">
+        <a className="brand" href="/" onClick={(event) => { event.preventDefault(); navigate("/"); }}>
           <span className="brandIcon">
             <CarFront />
           </span>
@@ -123,9 +125,9 @@ function Navbar({ user, role }) {
         <nav className={open ? "navlinks open" : "navlinks"}>
 
           <a
-            href="#top"
+            href="/"
             onClick={() => setOpen(false)}
-            className="active"
+            className={pathname === "/" ? "active" : ""}
           >
             Home
           </a>
@@ -151,10 +153,10 @@ function Navbar({ user, role }) {
             </>
           ) : (
             <>
-              <button className="login-link" type="button" onClick={() => { setOpen(false); navigate("/login"); }}>Login</button>
+              <button className={`login-link ${pathname === "/login" ? "active" : ""}`} type="button" onClick={() => { setOpen(false); navigate("/login"); }}>Login</button>
 
               <button
-                className="btn primary navbtn"
+                className={`btn primary navbtn ${pathname === "/register" ? "auth-current" : ""}`}
                 type="button"
                 onClick={() => { setOpen(false); navigate("/register"); }}
               >

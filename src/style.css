@@ -2109,3 +2109,55 @@ footer { width:min(1160px, calc(100% - 72px)); margin:auto; padding:22px 0; }.fo
   .authCard { padding: 30px 23px; border-radius: 22px; }
   .authCard h1 { font-size: 27px; }
 }
+
+/* Mark the current authentication page in the navbar */
+.navlinks .login-link.active {
+  background: var(--blue);
+  color: #fff;
+  padding: 10px 17px;
+  border-radius: 22px;
+}
+
+.navlinks .navbtn.auth-current {
+  box-shadow: 0 0 0 4px rgba(8, 102, 232, .16), 0 10px 25px rgba(8, 102, 232, .2);
+}
+
+
+
+/* Use a lightweight underline for the current navbar page */
+.navlinks .active,
+.navlinks .login-link.active {
+  position: relative;
+  padding: 4px 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--blue);
+  font-weight: 800;
+}
+
+.navlinks .active::after,
+.navlinks .login-link.active::after,
+.navlinks .navbtn.auth-current::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -5px;
+  left: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--blue);
+}
+
+.navlinks .navbtn.auth-current {
+  position: relative;
+  padding: 4px 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--blue);
+  box-shadow: none;
+}
+
+.navlinks .navbtn.auth-current:hover {
+  transform: none;
+}
+
