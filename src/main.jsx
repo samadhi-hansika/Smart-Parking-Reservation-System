@@ -22,7 +22,11 @@ import {
   doc,
   getDoc,
   setDoc,
-  serverTimestamp
+  serverTimestamp,
+  collection,
+  getDocs,
+  query,
+  where
 } from "firebase/firestore";
 
 import {
@@ -795,13 +799,76 @@ function DashboardNavbar({ user, admin = false }) {
 }
 
 function UserDashboard({ user }) {
+  const [dashboardData, setDashboardData] = useState({
+    name: user?.displayName || "",
+    availableParking: 0,
+    reservations: 0,
+    activeReservations: 0
+  });
+
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    let cancelled = false;
+
+    const loadDashboardData = async () => {
+      try {
+        const [profileSnapshot, slotsSnapshot, reservationsSnapshot] = await Promise.all([
+          getDoc(doc(db, "users", user.uid)),
+          getDocs(collection(db, "slots")),
+          getDocs(query(collection(db, "reservations"), where("userId", "==", user.uid)))
+        ]);
+
+        const slots = slotsSnapshot.docs.map((slot) => slot.data());
+        const reservations = reservationsSnapshot.docs.map((reservation) => reservation.data());
+        const profileName = profileSnapshot.exists() ? profileSnapshot.data().name : "";
+        const activeStatuses = ["active", "confirmed"];
+
+        if (!cancelled) {
+          setDashboardData({
+            name: profileName || user.displayName || user.email?.split("@")[0] || "there",
+            availableParking: slots.filter((slot) => slot.status?.toLowerCase() === "available").length,
+            reservations: reservations.length,
+            activeReservations: reservations.filter((reservation) =>
+              activeStatuses.includes(reservation.status?.toLowerCase())
+            ).length
+          });
+        }
+      } catch (error) {
+        console.error("Unable to load dashboard data:", error);
+      }
+    };
+
+    loadDashboardData();
+    return () => { cancelled = true; };
+  }, [user]);
+
   return (
     <>
       <DashboardNavbar user={user} />
       <main className="dashboard-page">
-        <div className="container">
-          <span className="label">USER DASHBOARD</span>
-          <h1>Welcome to ParkLink</h1>
+        <div className="container user-dashboard-content">
+          <section className="dashboard-welcome">
+            <h1>Welcome back, {dashboardData.name || "..."}! <span aria-hidden="true">{"\uD83D\uDC4B"}</span></h1>
+            <p>Find and reserve your perfect parking space.</p>
+          </section>
+          <section className="dashboard-stats" aria-label="Parking summary">
+            <article className="dashboard-stat-card">
+              <span className="dashboard-stat-icon"><CarFront /></span>
+              <span className="dashboard-stat-label">Available Parking</span>
+              <strong>{dashboardData.availableParking}</strong>
+            </article>
+            <article className="dashboard-stat-card">
+              <span className="dashboard-stat-icon"><Clock3 /></span>
+              <span className="dashboard-stat-label">My Reservations</span>
+              <strong>{dashboardData.reservations}</strong>
+            </article>
+            <article className="dashboard-stat-card">
+              <span className="dashboard-stat-icon"><ShieldCheck /></span>
+              <span className="dashboard-stat-label">Active Reservation</span>
+              <strong>{dashboardData.activeReservations}</strong>
+            </article>
+          </section>
         </div>
       </main>
     </>
