@@ -768,10 +768,26 @@ function DashboardNavbar({ user, admin = false }) {
           <span className="brandIcon">{admin ? <ShieldCheck /> : <CarFront />}</span>
           <b className="brandName"><span className="brandNamePark">Park</span><span className="brandNameLink">Link</span></b>
         </a>
+        <nav className="dashboard-links" aria-label="Dashboard navigation">
+          {admin ? (
+            <>
+              <a href="#find-parking">Find Parking</a>
+              <a href="#parking-locations">Parking Locations</a>
+              <a href="#available-slots">Available Slots</a>
+              <a href="#my-reservations">My Reservations</a>
+              <a href="#profile">Profile</a>
+            </>
+          ) : (
+            <>
+              <a href="/user-dashboard">Home</a>
+              <a href="#find-parking">Find Parking</a>
+              <a href="#reservations">Reservations</a>
+              <a href="#my-profile">My Profile</a>
+            </>
+          )}
+        </nav>
         <div className="dashboard-nav-right">
-          <span className="dashboard-role">{admin ? "ADMIN DASHBOARD" : "USER DASHBOARD"}</span>
-          {user?.email && <span className="dashboard-email">{user.email}</span>}
-          <button className="btn outline navbtn" type="button" onClick={handleLogout}>Logout</button>
+          {admin && <span className="dashboard-role">ADMIN DASHBOARD</span>}
         </div>
       </div>
     </header>
