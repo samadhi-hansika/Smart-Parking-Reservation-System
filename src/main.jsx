@@ -225,7 +225,7 @@ function Home({ user }) {
             <div className="phone">
 
               <div className="notch"></div>
-
+ 
               <div className="phonebody">
 
                 <small>Current Location</small>
