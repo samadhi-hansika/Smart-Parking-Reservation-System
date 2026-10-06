@@ -15,7 +15,10 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signOut
+  signOut,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword
 } from "firebase/auth";
 
 import {
@@ -26,7 +29,8 @@ import {
   collection,
   getDocs,
   query,
-  where
+  where,
+  runTransaction
 } from "firebase/firestore";
 
 import {
@@ -783,10 +787,10 @@ function DashboardNavbar({ user, admin = false }) {
             </>
           ) : (
             <>
-              <a href="/user-dashboard">Home</a>
-              <a href="#find-parking">Find Parking</a>
-              <a href="#reservations">Reservations</a>
-              <a href="#my-profile">My Profile</a>
+              <a href="/user-dashboard#dashboard-home">Home</a>
+              <a href="/user-dashboard#find-parking">Find Parking</a>
+              <a href="/user-dashboard#reservations">Reservations</a>
+              <a href="/my-profile">My Profile</a>
             </>
           )}
         </nav>
@@ -799,75 +803,312 @@ function DashboardNavbar({ user, admin = false }) {
 }
 
 function UserDashboard({ user }) {
-  const [dashboardData, setDashboardData] = useState({
-    name: user?.displayName || "",
-    availableParking: 0,
-    reservations: 0,
-    activeReservations: 0
-  });
+  const [profile, setProfile] = useState({ name: "", email: user?.email || "" });
+  const [locations, setLocations] = useState([]);
+  const [slots, setSlots] = useState([]);
+  const [reservations, setReservations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [selectedSlot, setSelectedSlot] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [startTime, setStartTime] = useState("09:00");
+  const [endTime, setEndTime] = useState("10:00");
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
+  const loadDashboard = async () => {
     if (!user?.uid) return;
+    setLoading(true);
+    setError("");
+    try {
+      const [profileSnapshot, locationsSnapshot, slotsSnapshot, reservationsSnapshot] = await Promise.all([
+        getDoc(doc(db, "users", user.uid)),
+        getDocs(collection(db, "locations")),
+        getDocs(collection(db, "slots")),
+        getDocs(query(collection(db, "reservations"), where("userId", "==", user.uid)))
+      ]);
+      const savedProfile = profileSnapshot.exists() ? profileSnapshot.data() : {};
+      const loadedLocations = locationsSnapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      const loadedSlots = slotsSnapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      const loadedReservations = reservationsSnapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      setProfile({ name: savedProfile.name || user.displayName || user.email?.split("@")[0] || "", email: savedProfile.email || user.email || "" });
+      setProfileName(savedProfile.name || user.displayName || user.email?.split("@")[0] || "");
+      setLocations(loadedLocations);
+      setSlots(loadedSlots);
+      setReservations(loadedReservations.sort((a, b) => (b.date || "").localeCompare(a.date || "")));
+    } catch (loadError) {
+      console.error("Unable to load user dashboard:", loadError);
+      setError("Could not load dashboard data. Please refresh and try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    let cancelled = false;
+  useEffect(() => { loadDashboard(); }, [user?.uid]);
 
-    const loadDashboardData = async () => {
-      try {
-        const [profileSnapshot, slotsSnapshot, reservationsSnapshot] = await Promise.all([
-          getDoc(doc(db, "users", user.uid)),
-          getDocs(collection(db, "slots")),
-          getDocs(query(collection(db, "reservations"), where("userId", "==", user.uid)))
-        ]);
+  const availableSlots = slots.filter((slot) =>
+    slot.locationId === selectedLocation?.id && slot.status?.toLowerCase() === "available"
+  );
+  const availableCount = slots.length
+    ? slots.filter((slot) => slot.status?.toLowerCase() === "available").length
+    : locations.reduce((total, location) => total + (Number(location.availableSlots) || 0), 0);
+  const activeReservations = reservations.filter((reservation) =>
+    ["active", "confirmed"].includes(reservation.status?.toLowerCase())
+  );
 
-        const slots = slotsSnapshot.docs.map((slot) => slot.data());
-        const reservations = reservationsSnapshot.docs.map((reservation) => reservation.data());
-        const profileName = profileSnapshot.exists() ? profileSnapshot.data().name : "";
-        const activeStatuses = ["active", "confirmed"];
-
-        if (!cancelled) {
-          setDashboardData({
-            name: profileName || user.displayName || user.email?.split("@")[0] || "there",
-            availableParking: slots.filter((slot) => slot.status?.toLowerCase() === "available").length,
-            reservations: reservations.length,
-            activeReservations: reservations.filter((reservation) =>
-              activeStatuses.includes(reservation.status?.toLowerCase())
-            ).length
-          });
+  const bookSlot = async (event) => {
+    event.preventDefault();
+    if (!selectedLocation || !selectedSlot || endTime <= startTime) {
+      setError("Choose an available slot and a valid time range.");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      const slotRef = doc(db, "slots", selectedSlot);
+      const reservationRef = doc(collection(db, "reservations"));
+      const slot = slots.find((item) => item.id === selectedSlot);
+      await runTransaction(db, async (transaction) => {
+        const slotSnapshot = await transaction.get(slotRef);
+        if (!slotSnapshot.exists() || slotSnapshot.data().status?.toLowerCase() !== "available") {
+          throw new Error("That parking slot has just been reserved. Please choose another one.");
         }
-      } catch (error) {
-        console.error("Unable to load dashboard data:", error);
-      }
-    };
+        transaction.update(slotRef, { status: "reserved", reservedBy: user.uid, reservationId: reservationRef.id });
+        transaction.set(reservationRef, {
+          userId: user.uid,
+          locationId: selectedLocation.id,
+          slotId: selectedSlot,
+          locationName: selectedLocation.name || "Parking location",
+          slotNumber: slot?.slotNumber || slot?.number || selectedSlot,
+          date,
+          startTime,
+          endTime,
+          status: "confirmed",
+          createdAt: serverTimestamp()
+        });
+      });
+      setSelectedLocation(null);
+      setSelectedSlot("");
+      setNotice("Your parking reservation is confirmed.");
+      await loadDashboard();
+    } catch (bookingError) {
+      console.error("Unable to reserve parking:", bookingError);
+      setError(bookingError.message || "Could not complete the reservation.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
-    loadDashboardData();
-    return () => { cancelled = true; };
-  }, [user]);
+  const cancelReservation = async (reservation) => {
+    if (!window.confirm("Cancel this reservation?")) return;
+    setError("");
+    try {
+      const reservationRef = doc(db, "reservations", reservation.id);
+      const slotRef = doc(db, "slots", reservation.slotId);
+      await runTransaction(db, async (transaction) => {
+        const [reservationSnapshot, slotSnapshot] = await Promise.all([
+          transaction.get(reservationRef), transaction.get(slotRef)
+        ]);
+        if (!reservationSnapshot.exists()) return;
+        if (slotSnapshot.exists() && slotSnapshot.data().reservationId === reservation.id) {
+          transaction.update(slotRef, { status: "available", reservedBy: null, reservationId: null });
+        }
+        transaction.update(reservationRef, { status: "cancelled" });
+      });
+      setNotice("Reservation cancelled.");
+      await loadDashboard();
+    } catch (cancelError) {
+      console.error("Unable to cancel reservation:", cancelError);
+      setError("Could not cancel this reservation. Please try again.");
+    }
+  };
 
   return (
     <>
       <DashboardNavbar user={user} />
-      <main className="dashboard-page">
+      <main className="dashboard-page user-dashboard-page">
         <div className="container user-dashboard-content">
-          <section className="dashboard-welcome">
-            <h1>Welcome back, {dashboardData.name || "..."}! <span aria-hidden="true">{"\uD83D\uDC4B"}</span></h1>
+          <section className="dashboard-welcome" id="dashboard-home">
+            <span className="label">YOUR PARKLINK DASHBOARD</span>
+            <h1>Welcome back, {profile.name || "..."}! <span aria-hidden="true">{"\uD83D\uDC4B"}</span></h1>
             <p>Find and reserve your perfect parking space.</p>
           </section>
+          {error && <div className="dashboard-message dashboard-error" role="alert">{error}</div>}
+          {notice && <div className="dashboard-message dashboard-success" role="status">{notice}<button type="button" onClick={() => setNotice("")} aria-label="Dismiss">×</button></div>}
           <section className="dashboard-stats" aria-label="Parking summary">
-            <article className="dashboard-stat-card">
-              <span className="dashboard-stat-icon"><CarFront /></span>
-              <span className="dashboard-stat-label">Available Parking</span>
-              <strong>{dashboardData.availableParking}</strong>
-            </article>
-            <article className="dashboard-stat-card">
-              <span className="dashboard-stat-icon"><Clock3 /></span>
-              <span className="dashboard-stat-label">My Reservations</span>
-              <strong>{dashboardData.reservations}</strong>
-            </article>
-            <article className="dashboard-stat-card">
-              <span className="dashboard-stat-icon"><ShieldCheck /></span>
-              <span className="dashboard-stat-label">Active Reservation</span>
-              <strong>{dashboardData.activeReservations}</strong>
-            </article>
+            <article className="dashboard-stat-card"><span className="dashboard-stat-icon"><CarFront /></span><span className="dashboard-stat-label">Available Parking</span><strong>{loading ? "…" : availableCount}</strong></article>
+            <article className="dashboard-stat-card"><span className="dashboard-stat-icon"><Clock3 /></span><span className="dashboard-stat-label">My Reservations</span><strong>{loading ? "…" : reservations.length}</strong></article>
+            <article className="dashboard-stat-card"><span className="dashboard-stat-icon"><ShieldCheck /></span><span className="dashboard-stat-label">Active Reservation</span><strong>{loading ? "…" : activeReservations.length}</strong></article>
+          </section>
+
+          <section className="user-dashboard-section" id="find-parking">
+            <div className="dashboard-section-heading"><div><span className="label">PARKING</span><h2>Find Parking</h2></div><span>{locations.length} locations</span></div>
+            {loading ? <p className="dashboard-empty">Loading parking locations…</p> : locations.length === 0 ? <p className="dashboard-empty">No parking locations are available yet.</p> :
+              <div className="user-location-grid">{locations.map((location) => {
+                const locationSlots = slots.filter((slot) => slot.locationId === location.id);
+                const freeSlots = locationSlots.filter((slot) => slot.status?.toLowerCase() === "available");
+                const reportedFreeSlots = locationSlots.length ? freeSlots.length : Number(location.availableSlots) || 0;
+                return <article className="user-location-card" key={location.id}>
+                  <div className="location-card-icon"><MapPin /></div>
+                  <h3>{location.name || "Parking location"}</h3>
+                  <p>{location.address || "Address not provided"}</p>
+                  <div className="location-card-meta"><span>{reportedFreeSlots} slots available</span>{location.price != null && <span>Rs. {location.price}/hour</span>}</div>
+                  <button className="btn primary" type="button" disabled={!freeSlots.length} onClick={() => { setSelectedLocation(location); setSelectedSlot(""); setError(""); document.getElementById("booking-form")?.scrollIntoView({ behavior: "smooth" }); }}>
+                    {freeSlots.length ? "Choose a Slot" : reportedFreeSlots ? "Slots not configured" : "Full"}
+                  </button>
+                </article>;
+              })}</div>}
+            {selectedLocation && <form className="dashboard-booking" id="booking-form" onSubmit={bookSlot}>
+              <div className="dashboard-section-heading"><div><span className="label">RESERVE</span><h2>{selectedLocation.name}</h2></div><button type="button" className="dashboard-text-button" onClick={() => setSelectedLocation(null)}>Close</button></div>
+              <label>Available slot<select required value={selectedSlot} onChange={(event) => setSelectedSlot(event.target.value)}><option value="">Select a slot</option>{availableSlots.map((slot) => <option value={slot.id} key={slot.id}>{slot.slotNumber || slot.number || slot.id}{slot.type ? ` · ${slot.type}` : ""}</option>)}</select></label>
+              <div className="dashboard-booking-fields"><label>Date<input type="date" required min={new Date().toISOString().slice(0, 10)} value={date} onChange={(event) => setDate(event.target.value)} /></label><label>Start time<input type="time" required value={startTime} onChange={(event) => setStartTime(event.target.value)} /></label><label>End time<input type="time" required value={endTime} onChange={(event) => setEndTime(event.target.value)} /></label></div>
+              <button className="btn primary" type="submit" disabled={saving || !selectedSlot}>{saving ? "Reserving…" : "Confirm Reservation"}</button>
+            </form>}
+          </section>
+
+          <section className="user-dashboard-section" id="reservations">
+            <div className="dashboard-section-heading"><div><span className="label">YOUR BOOKINGS</span><h2>Reservations</h2></div><span>{reservations.length} total</span></div>
+            {loading ? <p className="dashboard-empty">Loading reservations…</p> : reservations.length === 0 ? <div className="dashboard-empty dashboard-empty-card"><h3>No reservations yet</h3><p>Choose a parking location to reserve your first slot.</p><a className="btn primary" href="#find-parking">Find Parking</a></div> :
+              <div className="user-reservation-list">{reservations.map((reservation) => <article className="user-reservation-card" key={reservation.id}>
+                <span className="dashboard-stat-icon"><CarFront /></span><div className="user-reservation-details"><h3>{reservation.locationName || "Parking reservation"}</h3><p>Slot {reservation.slotNumber || reservation.slotId || "—"} · {reservation.date || "Date not set"} · {reservation.startTime || ""}{reservation.endTime ? `–${reservation.endTime}` : ""}</p></div>
+                <span className={`reservation-status ${reservation.status?.toLowerCase() || "pending"}`}>{reservation.status || "pending"}</span>
+                {reservation.status?.toLowerCase() === "confirmed" && <button className="dashboard-text-button cancel-reservation" type="button" onClick={() => cancelReservation(reservation)}>Cancel</button>}
+              </article>)}</div>}
+          </section>
+
+        </div>
+      </main>
+    </>
+  );
+}
+
+function UserProfile({ user }) {
+  const navigate = useNavigate();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState(user?.email || "");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordNotice, setPasswordNotice] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadProfile = async () => {
+      try {
+        const profileSnapshot = await getDoc(doc(db, "users", user.uid));
+        const profileData = profileSnapshot.exists() ? profileSnapshot.data() : {};
+        if (!cancelled) {
+          setName(profileData.name || user.displayName || user.email?.split("@")[0] || "");
+          setEmail(profileData.email || user.email || "");
+        }
+      } catch (loadError) {
+        console.error("Unable to load profile:", loadError);
+        if (!cancelled) setError("Could not load your profile. Please refresh and try again.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    loadProfile();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  const saveProfile = async (event) => {
+    event.preventDefault();
+    const updatedName = name.trim();
+    if (!updatedName) return;
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      await setDoc(doc(db, "users", user.uid), { name: updatedName }, { merge: true });
+      setName(updatedName);
+      setNotice("Profile updated successfully.");
+    } catch (saveError) {
+      console.error("Unable to update profile:", saveError);
+      setError("Could not update your profile. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const changePassword = async (event) => {
+    event.preventDefault();
+    setPasswordError("");
+    setPasswordNotice("");
+    if (newPassword.length < 6) {
+      setPasswordError("Choose a password with at least 6 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New password and confirmation do not match.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, newPassword);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordNotice("Password changed successfully.");
+    } catch (passwordChangeError) {
+      console.error("Unable to change password:", passwordChangeError);
+      if (["auth/wrong-password", "auth/invalid-credential"].includes(passwordChangeError.code)) {
+        setPasswordError("Current password is incorrect.");
+      } else if (passwordChangeError.code === "auth/weak-password") {
+        setPasswordError("Choose a stronger password with at least 6 characters.");
+      } else {
+        setPasswordError("Could not change your password. Please try again.");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    navigate("/login", { replace: true });
+  };
+
+  return (
+    <>
+      <DashboardNavbar user={user} />
+      <main className="dashboard-page user-dashboard-page user-profile-page">
+        <div className="container">
+          <section className="dashboard-welcome">
+            <span className="label">ACCOUNT</span>
+            <h1>My Profile</h1>
+            <p>View and update your account details.</p>
+          </section>
+          {error && <div className="dashboard-message dashboard-error" role="alert">{error}</div>}
+          {notice && <div className="dashboard-message dashboard-success" role="status">{notice}</div>}
+          <form className="dashboard-profile-card" onSubmit={saveProfile}>
+            <label>Full name<input required value={name} onChange={(event) => setName(event.target.value)} disabled={loading} /></label>
+            <label>Email address<input type="email" value={email} readOnly /></label>
+            <button className="btn primary" type="submit" disabled={loading || saving}>{loading ? "Loading…" : saving ? "Saving…" : "Save Profile"}</button>
+          </form>
+          <section className="password-change-card">
+            <h2>Change Password</h2>
+            <p>Enter your current password, then choose a new password.</p>
+            {passwordError && <div className="dashboard-message dashboard-error" role="alert">{passwordError}</div>}
+            {passwordNotice && <div className="dashboard-message dashboard-success" role="status">{passwordNotice}</div>}
+            <form className="password-change-form" onSubmit={changePassword}>
+              <label>Current password<input type="password" autoComplete="current-password" required minLength={6} value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} /></label>
+              <label>New password<input type="password" autoComplete="new-password" required minLength={6} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} /></label>
+              <label>Confirm new password<input type="password" autoComplete="new-password" required minLength={6} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /></label>
+              <button className="btn primary" type="submit" disabled={saving}>{saving ? "Updating…" : "Change Password"}</button>
+            </form>
+          </section>
+          <section className="profile-logout-card">
+            <div><h2>Sign out</h2><p>Log out of your ParkLink account on this device.</p></div>
+            <button className="btn outline" type="button" onClick={handleLogout}>Logout</button>
           </section>
         </div>
       </main>
@@ -950,7 +1191,7 @@ function App() {
   return (
 
     <>
-      {!pathname.endsWith("-dashboard") && <Navbar user={user} />}
+      {!pathname.endsWith("-dashboard") && pathname !== "/my-profile" && <Navbar user={user} />}
 
       <Routes>
 
@@ -986,6 +1227,14 @@ function App() {
           }
         />
 
+        <Route
+          path="/my-profile"
+          element={
+            <RoleRoute user={user} role={role} requiredRole="user">
+              <UserProfile user={user} />
+            </RoleRoute>
+          }
+        />
         <Route
           path="/admin-dashboard"
           element={
