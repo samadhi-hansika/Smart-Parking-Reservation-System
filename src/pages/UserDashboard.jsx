@@ -21,6 +21,7 @@ import { db } from "../firebase";
 import { DEFAULT_LOCATIONS, generateFallbackSlots } from "../data/parkingData";
 import DashboardNavbar from "../components/layout/DashboardNavbar";
 import Btn from "../components/common/Btn";
+import ReservationModule from "../components/ReservationModule";
 
 export default function UserDashboard({ user }) {
   const [profile, setProfile] = useState({ name: "", email: user?.email || "" });
@@ -46,7 +47,15 @@ export default function UserDashboard({ user }) {
 
       const savedProfile = profileSnapshot.exists() ? profileSnapshot.data() : {};
       const loadedLocations = locationsSnapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
-      const loadedSlots = slotsSnapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      const loadedSlots = slotsSnapshot.docs.map((item) => {
+        const data = item.data();
+        return {
+          ...data,
+          id: item.id,
+          status: String(data.status || "available").toLowerCase(),
+          isPersisted: true,
+        };
+      });
 
       setProfile({
         name: savedProfile.name || user.displayName || user.email?.split("@")[0] || "Driver",
@@ -58,13 +67,13 @@ export default function UserDashboard({ user }) {
         setSlots(loadedSlots);
       } else {
         setLocations(DEFAULT_LOCATIONS);
-        const fallbackSlots = DEFAULT_LOCATIONS.flatMap((loc) => generateFallbackSlots(loc.id));
+        const fallbackSlots = DEFAULT_LOCATIONS.flatMap((loc) => generateFallbackSlots(loc.id).map((slot) => ({ ...slot, isPersisted: false })));
         setSlots(fallbackSlots);
       }
     } catch (loadError) {
       console.error("Unable to load user dashboard:", loadError);
       setLocations(DEFAULT_LOCATIONS);
-      const fallbackSlots = DEFAULT_LOCATIONS.flatMap((loc) => generateFallbackSlots(loc.id));
+      const fallbackSlots = DEFAULT_LOCATIONS.flatMap((loc) => generateFallbackSlots(loc.id).map((slot) => ({ ...slot, isPersisted: false })));
       setSlots(fallbackSlots);
     } finally {
       setLoading(false);
@@ -74,6 +83,13 @@ export default function UserDashboard({ user }) {
   useEffect(() => {
     loadDashboard();
   }, [user?.uid]);
+
+  // Keep the selected bay in sync after a reservation locks/unlocks its Firestore document.
+  useEffect(() => {
+    if (!selectedSlot?.id) return;
+    const latestSlot = slots.find((item) => item.id === selectedSlot.id);
+    if (latestSlot && latestSlot !== selectedSlot) setSelectedSlot(latestSlot);
+  }, [slots, selectedSlot?.id]);
 
   const filteredLocations = useMemo(() => {
     if (!searchFilter.trim()) return locations;
@@ -89,7 +105,7 @@ export default function UserDashboard({ user }) {
     if (!selectedLocation) return [];
     const locSlots = slots.filter((slot) => slot.locationId === selectedLocation.id);
     if (locSlots.length > 0) return locSlots;
-    return generateFallbackSlots(selectedLocation.id);
+    return generateFallbackSlots(selectedLocation.id).map((slot) => ({ ...slot, isPersisted: false }));
   }, [selectedLocation, slots]);
 
   const totalSlotsCount = useMemo(() => {
@@ -424,6 +440,14 @@ export default function UserDashboard({ user }) {
               </div>
             )}
           </section>
+
+          {/* MEMBER 2: Reservation, Availability, Payment, My Reservations & Double-booking protection */}
+          <ReservationModule
+            user={user}
+            location={selectedLocation}
+            slot={selectedSlot}
+            onRefresh={loadDashboard}
+          />
         </div>
       </main>
     </div>
