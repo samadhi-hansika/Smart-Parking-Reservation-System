@@ -185,49 +185,137 @@ export default function ReservationModule({ user, location, slot, onRefresh }) {
     }
   };
 
+  
   const extendReservation = async (reservation) => {
     const newEndTime = extensionTimes[reservation.id];
-    const addedHours = timeHours(reservation.endTime, newEndTime);
-    if (!newEndTime || addedHours <= 0) {
-      setNotice({ type: "error", text: "Choose an end time later than the current reservation end time." });
+
+    if (!newEndTime || newEndTime <= reservation.endTime) {
+      setNotice({
+        type: "error",
+        text: `Choose a time later than ${reservation.endTime}.`
+      });
       return;
     }
-    if (new Date(`${reservation.date}T${newEndTime}`) <= new Date()) {
-      setNotice({ type: "error", text: "The new end time must be in the future." });
+
+    const newEndDateTime = new Date(
+      `${reservation.date}T${newEndTime}:00`
+    );
+
+    if (
+      Number.isNaN(newEndDateTime.getTime()) ||
+      newEndDateTime <= new Date()
+    ) {
+      setNotice({
+        type: "error",
+        text: "The new end time must be in the future."
+      });
+      return;
+    }
+
+    const addedHours = timeHours(
+      reservation.endTime,
+      newEndTime
+    );
+
+    if (addedHours <= 0) {
+      setNotice({
+        type: "error",
+        text: "Choose a valid extension time."
+      });
       return;
     }
 
     setBusy(true);
     setNotice({ type: "", text: "" });
+
     try {
-      const reservationRef = doc(db, "reservations", reservation.id);
+      const reservationRef = doc(
+        db,
+        "reservations",
+        reservation.id
+      );
+
       await runTransaction(db, async (transaction) => {
         const snapshot = await transaction.get(reservationRef);
-        if (!snapshot.exists()) throw new Error("Reservation not found.");
-        const saved = snapshot.data();
-        if (saved.userId !== user.uid || saved.status !== "confirmed") {
-          throw new Error("Only your confirmed reservations can be extended.");
+
+        if (!snapshot.exists()) {
+          throw new Error("Reservation not found.");
         }
-        const addedAmount = Number((addedHours * Number(saved.hourlyRate || 0)).toFixed(2));
+
+        const saved = snapshot.data();
+
+        if (
+          saved.userId !== user.uid ||
+          saved.status !== "confirmed"
+        ) {
+          throw new Error(
+            "Only your confirmed reservations can be extended."
+          );
+        }
+
+        if (newEndTime <= saved.endTime) {
+          throw new Error(
+            "Choose an end time later than the current end time."
+          );
+        }
+
+        const extraHours = timeHours(
+          saved.endTime,
+          newEndTime
+        );
+
+        const addedAmount = Number(
+          (
+            extraHours * Number(saved.hourlyRate || 0)
+          ).toFixed(2)
+        );
+
         transaction.update(reservationRef, {
           endTime: newEndTime,
-          durationHours: Number((Number(saved.durationHours || 0) + addedHours).toFixed(2)),
-          totalAmount: Number((Number(saved.totalAmount || 0) + addedAmount).toFixed(2)),
-          extensionHistory: [...(saved.extensionHistory || []), {
-            previousEndTime: saved.endTime,
-            newEndTime,
-            addedHours,
-            addedAmount,
-            extendedAt: new Date().toISOString(),
-          }],
-          updatedAt: new Date().toISOString(),
+          durationHours: Number(
+            (
+              Number(saved.durationHours || 0) + extraHours
+            ).toFixed(2)
+          ),
+          totalAmount: Number(
+            (
+              Number(saved.totalAmount || 0) + addedAmount
+            ).toFixed(2)
+          ),
+          extensionHistory: [
+            ...(saved.extensionHistory || []),
+            {
+              previousEndTime: saved.endTime,
+              newEndTime,
+              addedHours: extraHours,
+              addedAmount,
+              extendedAt: new Date().toISOString()
+            }
+          ],
+          updatedAt: new Date().toISOString()
         });
       });
-      setNotice({ type: "success", text: "Parking time extended and booking history updated." });
+
       await loadReservations();
+
+      setExtensionTimes((old) => ({
+        ...old,
+        [reservation.id]: newEndTime
+      }));
+
+      setNotice({
+        type: "success",
+        text: `Parking time extended until ${newEndTime}. Total amount updated.`
+      });
     } catch (err) {
       console.error("Extension failed:", err);
-      setNotice({ type: "error", text: err.message || "Could not extend this reservation." });
+
+      setNotice({
+        type: "error",
+        text: `Extension failed: ${err.code || ""} ${
+          err.message || "Please try again."
+        }`
+      });
     } finally {
       setBusy(false);
     }
