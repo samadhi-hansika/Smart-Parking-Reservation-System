@@ -327,7 +327,7 @@ export default function UserDashboard({ user }) {
                       const laneSlots = currentSlots.filter(
                         (s) => (s.lane === laneLetter) || s.slotNumber?.startsWith(laneLetter)
                       );
-                      const displaySlots = laneSlots.length > 0 ? laneSlots : currentSlots.slice(0, 6);
+                      const displaySlots = laneSlots;
 
                       return (
                         <div key={laneLetter} className="lane-row-group">
