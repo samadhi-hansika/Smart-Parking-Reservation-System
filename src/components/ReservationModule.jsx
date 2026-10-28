@@ -78,9 +78,13 @@ export default function ReservationModule({ user, location, slot, onRefresh }) {
       rows.sort((a, b) => `${b.date || ""}${b.startTime || ""}`.localeCompare(`${a.date || ""}${a.startTime || ""}`));
       setReservations(rows);
     } catch (err) {
-      console.error("Could not load reservations:", err);
-      setNotice({ type: "error", text: "Your reservations could not be loaded. Check your Firestore rules and connection." });
-    }
+  console.error("Could not load reservations:", err);
+  setNotice({
+    type: "error",
+    text: `History error: ${err.code || ""} ${err.message || "Unable to load reservations"}`
+  });
+}
+    
   }, [user?.uid]);
 
   useEffect(() => { loadReservations(); }, [loadReservations]);
