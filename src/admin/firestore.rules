@@ -1,0 +1,100 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+
+    // 1. Users collection
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow update: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // 2. Locations collection
+    match /locations/{locationId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // 3. Slots collection
+    match /slots/{slotId} {
+      allow read: if signedIn();
+      allow create, delete: if isAdmin();
+
+      allow update: if isAdmin() || (
+        signedIn() && (
+          // Booking: lock slot as reserved
+          (
+            (
+              !('status' in resource.data)
+              || resource.data.status in ["available", "Available", "AVAILABLE"]
+            )
+            && request.resource.data.status == "reserved"
+            && request.resource.data.reservedBy == request.auth.uid
+            && request.resource.data.reservationId is string
+          )
+          ||
+          // Cancellation: release slot back to available
+          (
+            resource.data.status == "reserved"
+            && (resource.data.reservedBy == request.auth.uid || isAdmin())
+            && request.resource.data.status == "available"
+            && request.resource.data.reservedBy == null
+            && request.resource.data.reservationId == null
+          )
+        )
+      );
+    }
+
+    // 4. Reservations collection
+    match /reservations/{reservationId} {
+      // Driver reads own bookings; Admin reads all bookings across all locations
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+
+      // Create: driver booking transaction OR admin seeding / manual creation
+      allow create: if isAdmin() || (
+        signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status in ["confirmed", "pending"]
+        && request.resource.data.slotId is string
+        && request.resource.data.date is string
+        && request.resource.data.startTime is string
+        && request.resource.data.endTime is string
+      );
+
+      // Update: Admin can approve, complete, or cancel any booking; driver can cancel or extend own booking
+      allow update: if isAdmin() || (
+        signedIn()
+        && resource.data.userId == request.auth.uid
+        && resource.data.status == "confirmed"
+        && (
+          // Driver cancellation
+          request.resource.data.status == "cancelled"
+          ||
+          // Driver time extension
+          (
+            request.resource.data.status == "confirmed"
+            && request.resource.data.userId == resource.data.userId
+            && request.resource.data.slotId == resource.data.slotId
+            && request.resource.data.endTime > resource.data.endTime
+          )
+        )
+      );
+
+      // Delete: admin hard delete only
+      allow delete: if isAdmin();
+    }
+  }
+}
