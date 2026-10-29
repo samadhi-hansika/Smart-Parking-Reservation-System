@@ -45,6 +45,7 @@ export default function AdminModule({ user, role = "admin" }) {
   const handleNavigateToSlots = (locationId) => {
     setSelectedLocationForSlots(locationId);
     setActiveTab("slots");
+    navigate("/admin/slots");
   };
 
   // Dynamic titles for layout header

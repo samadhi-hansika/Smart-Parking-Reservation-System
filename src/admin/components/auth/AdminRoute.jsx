@@ -2,8 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../../../firebase";
-import UnauthorizedPage from "../../pages/UnauthorizedPage";
-import { CarFront, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 
 export default function AdminRoute({ children, user: propUser, role: propRole }) {
   const [currentUser, setCurrentUser] = useState(propUser ?? auth.currentUser);
@@ -77,7 +76,7 @@ export default function AdminRoute({ children, user: propUser, role: propRole })
   }
 
   if (userRole !== "admin") {
-    return <UnauthorizedPage user={currentUser} role={userRole} />;
+    return <Navigate to="/admin/unauthorized" replace />;
   }
 
   return children;
