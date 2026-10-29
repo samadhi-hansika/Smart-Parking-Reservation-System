@@ -42,7 +42,7 @@ export default function AdminSidebar({
       id: "dashboard",
       label: "Dashboard",
       icon: LayoutDashboard,
-      path: "/admin-dashboard",
+      path: "/admin",
     },
     {
       id: "locations",
