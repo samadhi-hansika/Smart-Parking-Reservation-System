@@ -1,19 +1,4 @@
 import React, { useState, useMemo } from "react";
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from "recharts";
 import StatCard from "../components/common/StatCard";
 import { useAdminLiveStats } from "../hooks/useAdminLiveStats";
 import { useToast } from "../hooks/useToast";
@@ -38,6 +23,160 @@ import {
 } from "lucide-react";
 
 const COLORS = ["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
+
+const polarToCartesian = (cx, cy, radius, angle) => {
+  const radians = ((angle - 90) * Math.PI) / 180;
+  return {
+    x: cx + radius * Math.cos(radians),
+    y: cy + radius * Math.sin(radians),
+  };
+};
+
+const describeArc = (cx, cy, radius, startAngle, endAngle) => {
+  const start = polarToCartesian(cx, cy, radius, endAngle);
+  const end = polarToCartesian(cx, cy, radius, startAngle);
+  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+  return [
+    `M ${start.x} ${start.y}`,
+    `A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`,
+    `L ${cx} ${cy}`,
+    "Z",
+  ].join(" ");
+};
+
+function SimpleAreaChart({ data }) {
+  const width = 520;
+  const height = 250;
+  const padding = { top: 16, right: 22, bottom: 28, left: 36 };
+  const maxValue = Math.max(...data.map((item) => Number(item.revenue || 0)), 1);
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+  const xStep = data.length > 1 ? chartWidth / (data.length - 1) : 0;
+  const points = data.map((item, index) => ({
+    x: padding.left + index * xStep,
+    y: height - padding.bottom - (Number(item.revenue || 0) / maxValue) * chartHeight,
+    value: item.revenue,
+    label: item.date,
+  }));
+  const linePath = points
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
+    .join(" ");
+  if (data.length === 0) {
+    return <div className="chart-empty-msg">No booking activity recorded for this period.</div>;
+  }
+
+  const areaPath = `${linePath} L ${points[points.length - 1].x} ${height - padding.bottom} L ${points[0].x} ${height - padding.bottom} Z`;
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="100%" role="img" aria-label="Revenue trend chart">
+      {[0, 1, 2, 3, 4].map((step) => {
+        const y = padding.top + (chartHeight / 4) * step;
+        return <line key={step} x1={padding.left} x2={width - padding.right} y1={y} y2={y} stroke="#e2e8f0" strokeDasharray="3 3" />;
+      })}
+      <path d={areaPath} fill="rgba(37, 99, 235, 0.18)" />
+      <path d={linePath} fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" />
+      {points.map((point, index) => (
+        <g key={`${point.label}-${index}`}>
+          <circle cx={point.x} cy={point.y} r="4" fill="#2563eb" />
+          <title>{`${formatDate(point.label)}: ${formatCurrency(point.value)}`}</title>
+        </g>
+      ))}
+      {points.map((point, index) => {
+        const showLabel =
+          index === 0 ||
+          index === points.length - 1 ||
+          index % Math.max(1, Math.ceil(points.length / 5)) === 0;
+        if (!showLabel) return null;
+        return (
+          <text key={`label-${index}`} x={point.x} y={height - 6} textAnchor="middle" fontSize="10" fill="#64748b">
+            {formatDate(point.label).slice(0, 6)}
+          </text>
+        );
+      })}
+    </svg>
+  );
+}
+
+function SimpleBarChart({ data, color, xKey, valueKey, angle = 0 }) {
+  const width = 520;
+  const height = 250;
+  const padding = { top: 16, right: 18, bottom: 48, left: 36 };
+  const maxValue = Math.max(...data.map((item) => Number(item[valueKey] || 0)), 1);
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+  const barWidth = (chartWidth / data.length) * 0.7;
+
+  if (data.length === 0) {
+    return <div className="chart-empty-msg">No data available.</div>;
+  }
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="100%" role="img" aria-label="Bar chart">
+      {[0, 1, 2, 3, 4].map((step) => {
+        const y = padding.top + (chartHeight / 4) * step;
+        return <line key={step} x1={padding.left} x2={width - padding.right} y1={y} y2={y} stroke="#e2e8f0" strokeDasharray="3 3" />;
+      })}
+      {data.map((item, index) => {
+        const value = Number(item[valueKey] || 0);
+        const x = padding.left + (index * chartWidth) / data.length + (chartWidth / data.length - barWidth) / 2;
+        const barHeight = (value / maxValue) * chartHeight;
+        const y = height - padding.bottom - barHeight;
+        const label = String(item[xKey] ?? "");
+        const labelX = x + barWidth / 2;
+        const labelY = height - 16;
+
+        return (
+          <g key={`${label}-${index}`}>
+            <rect x={x} y={y} width={barWidth} height={barHeight} rx="6" fill={color} opacity="0.9" />
+            <title>{`${item.fullName || label}: ${value}`}</title>
+            <text
+              x={labelX}
+              y={labelY}
+              textAnchor="middle"
+              fontSize="10"
+              fill="#64748b"
+              transform={angle ? `rotate(${angle} ${labelX} ${labelY})` : undefined}
+            >
+              {label.length > 10 ? `${label.slice(0, 9)}…` : label}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function SimplePieChart({ data }) {
+  const width = 220;
+  const height = 220;
+  const cx = width / 2;
+  const cy = height / 2;
+  const radius = 72;
+  const total = data.reduce((sum, item) => sum + Number(item.value || 0), 0) || 1;
+  let startAngle = 0;
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="100%" role="img" aria-label="Status breakdown chart">
+      {data.map((item, index) => {
+        const sliceAngle = (Number(item.value || 0) / total) * 360;
+        const endAngle = startAngle + sliceAngle;
+        const path =
+          sliceAngle >= 360
+            ? `M ${cx} ${cy} L ${cx} ${cy - radius} A ${radius} ${radius} 0 0 1 ${cx} ${cy + radius} A ${radius} ${radius} 0 0 1 ${cx} ${cy - radius} Z`
+            : describeArc(cx, cy, radius, startAngle, endAngle);
+        startAngle = endAngle;
+        return (
+          <path key={`${item.name}-${index}`} d={path} fill={item.color} stroke="#fff" strokeWidth="2" opacity="0.92">
+            <title>{`${item.name}: ${item.value}`}</title>
+          </path>
+        );
+      })}
+      <circle cx={cx} cy={cy} r="36" fill="#fff" />
+      <text x={cx} y={cy - 6} textAnchor="middle" fontSize="12" fill="#64748b">Total</text>
+      <text x={cx} y={cy + 16} textAnchor="middle" fontSize="18" fontWeight="700" fill="#0f172a">{total}</text>
+    </svg>
+  );
+}
 
 export default function ReportsPage() {
   const { reservations, locations, loading } = useAdminLiveStats();
@@ -400,50 +539,7 @@ export default function ReportsPage() {
           </div>
 
           <div className="chart-container" style={{ height: 280, width: "100%" }}>
-            {trendData.length === 0 ? (
-              <div className="chart-empty-msg">No booking activity recorded for this period.</div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trendData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2563eb" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0.0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis
-                    dataKey="date"
-                    tickFormatter={(val) => formatDate(val).slice(0, 6)}
-                    stroke="#94a3b8"
-                    fontSize={12}
-                  />
-                  <YAxis
-                    stroke="#94a3b8"
-                    fontSize={12}
-                    tickFormatter={(val) => `Rs.${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
-                  />
-                  <Tooltip
-                    formatter={(val) => [formatCurrency(val), "Revenue"]}
-                    labelFormatter={(val) => `Date: ${formatDate(val)}`}
-                    contentStyle={{
-                      backgroundColor: "#0f172a",
-                      color: "#fff",
-                      borderRadius: "8px",
-                      border: "none",
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="#2563eb"
-                    strokeWidth={3}
-                    fillOpacity={1}
-                    fill="url(#revenueGradient)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
+            <SimpleAreaChart data={trendData} />
           </div>
         </div>
 
@@ -456,30 +552,7 @@ export default function ReportsPage() {
             {statusPieData.length === 0 ? (
               <div className="chart-empty-msg">No data available</div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={statusPieData}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={50}
-                    outerRadius={75}
-                    paddingAngle={4}
-                  >
-                    {statusPieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#0f172a",
-                      color: "#fff",
-                      borderRadius: "8px",
-                      border: "none",
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              <SimplePieChart data={statusPieData} />
             )}
           </div>
 
@@ -519,30 +592,13 @@ export default function ReportsPage() {
             {locationRankData.length === 0 ? (
               <div className="chart-empty-msg">No location reservation data</div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={locationRankData} margin={{ top: 10, right: 20, left: 0, bottom: 25 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis
-                    dataKey="name"
-                    stroke="#94a3b8"
-                    fontSize={11}
-                    angle={-15}
-                    textAnchor="end"
-                  />
-                  <YAxis stroke="#94a3b8" fontSize={12} allowDecimals={false} />
-                  <Tooltip
-                    formatter={(val, name) => [val, name === "bookings" ? "Reservations" : name]}
-                    labelFormatter={(val, items) => items?.[0]?.payload?.fullName || val}
-                    contentStyle={{
-                      backgroundColor: "#0f172a",
-                      color: "#fff",
-                      borderRadius: "8px",
-                      border: "none",
-                    }}
-                  />
-                  <Bar dataKey="bookings" fill="#3b82f6" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <SimpleBarChart
+                data={locationRankData}
+                color="#3b82f6"
+                xKey="name"
+                valueKey="bookings"
+                angle={-15}
+              />
             )}
           </div>
         </div>
@@ -557,23 +613,7 @@ export default function ReportsPage() {
           </div>
 
           <div className="chart-container" style={{ height: 260, width: "100%" }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={peakHoursData} margin={{ top: 10, right: 15, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="hour" stroke="#94a3b8" fontSize={11} />
-                <YAxis stroke="#94a3b8" fontSize={12} allowDecimals={false} />
-                <Tooltip
-                  formatter={(val) => [`${val} Bookings`, "Volume"]}
-                  contentStyle={{
-                    backgroundColor: "#0f172a",
-                    color: "#fff",
-                    borderRadius: "8px",
-                    border: "none",
-                  }}
-                />
-                <Bar dataKey="bookings" fill="#10b981" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <SimpleBarChart data={peakHoursData} color="#10b981" xKey="hour" valueKey="bookings" />
           </div>
         </div>
       </section>
