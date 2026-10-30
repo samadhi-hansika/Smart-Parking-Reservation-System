@@ -1,95 +1,60 @@
 rules_version = '2';
 
 service cloud.firestore {
-
   match /databases/{database}/documents {
-
-    /* CHECK USER LOGIN*/
-
     function signedIn() {
       return request.auth != null;
     }
 
-    /* CHECK ADMIN */
-
     function isAdmin() {
-
       return signedIn()
-        &&
-        get(
-          /databases/$(database)/documents/users/$(request.auth.uid)
-        ).data.role == "admin";
-
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
     }
-
-    /* USERS*/
 
     match /users/{uid} {
-
-      allow read:
-        if signedIn()
-        &&
-        (
-          request.auth.uid == uid
-          ||
-          isAdmin()
-        );
-
-      allow create:
-        if signedIn()
-        &&
-        request.auth.uid == uid;
-
-      allow update:
-        if signedIn()
-        &&
-        (
-          request.auth.uid == uid
-          ||
-          isAdmin()
-        );
-
-      allow delete:
-        if isAdmin();
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if signedIn() && request.auth.uid == uid;
+      allow update: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow delete: if isAdmin();
     }
-
-    /*PARKING LOCATIONS */
 
     match /locations/{locationId} {
-
-      allow read:
-        if signedIn();
-
-      allow create, update, delete:
-        if isAdmin();
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
     }
 
-    /*  PARKING SLOTS */
-
     match /slots/{slotId} {
-
       allow read: if signedIn();
       allow create, delete: if isAdmin();
 
       allow update: if isAdmin() || (
         signedIn() && (
+          // A booking transaction must create the matching reservation and lock this slot.
           (
-            resource.data.status == "available"
+            (
+              !('status' in resource.data)
+              || resource.data.status in ["available", "Available", "AVAILABLE"]
+            )
             && request.resource.data.status == "reserved"
             && request.resource.data.reservedBy == request.auth.uid
             && request.resource.data.reservationId is string
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "reservedBy", "reservationId"])
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(["status", "reservedBy", "reservationId"])
             && getAfter(/databases/$(database)/documents/reservations/$(request.resource.data.reservationId)).data.userId == request.auth.uid
             && getAfter(/databases/$(database)/documents/reservations/$(request.resource.data.reservationId)).data.slotId == slotId
+            && getAfter(/databases/$(database)/documents/reservations/$(request.resource.data.reservationId)).data.status == "confirmed"
           )
           ||
+          // A cancellation transaction must cancel the matching reservation and release this slot.
           (
             resource.data.status == "reserved"
             && resource.data.reservedBy == request.auth.uid
             && request.resource.data.status == "available"
             && request.resource.data.reservedBy == null
             && request.resource.data.reservationId == null
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "reservedBy", "reservationId"])
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(["status", "reservedBy", "reservationId"])
             && getAfter(/databases/$(database)/documents/reservations/$(resource.data.reservationId)).data.status == "cancelled"
             && getAfter(/databases/$(database)/documents/reservations/$(resource.data.reservationId)).data.userId == request.auth.uid
           )
@@ -97,15 +62,19 @@ service cloud.firestore {
       );
     }
 
-    /*  RESERVATIONS*/
-
     match /reservations/{reservationId} {
-
+      // The owner can read their own bookings; admins can read all bookings.
       allow read: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
 
+      // Reservation and slot lock must be written atomically in one transaction.
       allow create: if signedIn()
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == "confirmed"
+        && request.resource.data.slotId is string
+        && request.resource.data.date is string
+        && request.resource.data.startTime is string
+        && request.resource.data.endTime is string
+        && request.resource.data.totalAmount is number
         && getAfter(/databases/$(database)/documents/slots/$(request.resource.data.slotId)).data.status == "reserved"
         && getAfter(/databases/$(database)/documents/slots/$(request.resource.data.slotId)).data.reservedBy == request.auth.uid
         && getAfter(/databases/$(database)/documents/slots/$(request.resource.data.slotId)).data.reservationId == reservationId;
@@ -114,10 +83,34 @@ service cloud.firestore {
         signedIn()
         && resource.data.userId == request.auth.uid
         && resource.data.status == "confirmed"
-        && request.resource.data.status == "cancelled"
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status"])
-        && getAfter(/databases/$(database)/documents/slots/$(resource.data.slotId)).data.status == "available"
-        && getAfter(/databases/$(database)/documents/slots/$(resource.data.slotId)).data.reservationId == null
+        && (
+          // Cancellation only changes status and releases the linked slot.
+          (
+            request.resource.data.status == "cancelled"
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status"])
+            && getAfter(/databases/$(database)/documents/slots/$(resource.data.slotId)).data.status == "available"
+            && getAfter(/databases/$(database)/documents/slots/$(resource.data.slotId)).data.reservationId == null
+          )
+          ||
+          // Extension can only alter the time, duration, amount, history and updatedAt fields.
+          (
+            request.resource.data.status == "confirmed"
+            && request.resource.data.userId == resource.data.userId
+            && request.resource.data.slotId == resource.data.slotId
+            && request.resource.data.locationId == resource.data.locationId
+            && request.resource.data.date == resource.data.date
+            && request.resource.data.startTime == resource.data.startTime
+            && request.resource.data.endTime > resource.data.endTime
+            && request.resource.data.durationHours > resource.data.durationHours
+            && request.resource.data.totalAmount >= resource.data.totalAmount
+            && request.resource.data.extensionHistory is list
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              "endTime", "durationHours", "totalAmount", "extensionHistory", "updatedAt"
+            ])
+            && get(/databases/$(database)/documents/slots/$(resource.data.slotId)).data.status == "reserved"
+            && get(/databases/$(database)/documents/slots/$(resource.data.slotId)).data.reservationId == reservationId
+          )
+        )
       );
 
       allow delete: if isAdmin();

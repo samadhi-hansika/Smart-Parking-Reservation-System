@@ -351,3 +351,31 @@ The payment section is currently a mock payment/confirmation process.
 A real payment gateway can be integrated later.
 
 For the final version, transaction-based reservation locking should be added to prevent two users from reserving the same parking slot at the same time.
+
+
+## Member 2 — Reservation & Payment Module
+
+The user dashboard includes the Member 2 workflow:
+
+- Select an available parking bay from the existing slot layout.
+- Choose a reservation date, start time, and end time. Past dates, invalid time ranges, and past start times for today are rejected.
+- Calculate the estimated fee from the selected location's hourly price.
+- Choose the simulated card payment or pay-at-location option. This project does not collect card details or charge real money.
+- Save a reservation with a unique reference, payment status, user ID, location, slot, time, and total.
+- View the signed-in user's reservations and cancel a confirmed reservation.
+- Use a Firestore transaction to check the current slot state and write the reservation plus slot lock together. This prevents two concurrent bookings from successfully locking the same available slot.
+
+### Important implementation notes
+
+1. Bookings require real documents in the Firestore `locations` and `slots` collections. Fallback/demo slots are display-only and cannot be booked.
+2. The current `firestore.rules` model reserves a slot exclusively until its reservation is cancelled. It does not yet support reusing the same slot for non-overlapping date/time windows. That requires a date/time-aware reservation schema and coordinated rule updates.
+3. Publish the repository's `firestore.rules` in Firebase Console for the transaction and cancellation flow to work. Do not loosen the rules to make errors disappear.
+4. Payment is simulated for coursework/demo purposes only. A real payment gateway must be integrated and verified server-side before using real payments.
+
+## Member 2 — Reservation, payment demo, booking history
+
+- A booking is created in the Firestore `reservations` collection in the same transaction that locks the corresponding `slots/{slotId}` document.
+- The driver can see their bookings in **My Reservations**, refresh history, cancel a confirmed reservation, and extend the same-day end time.
+- Firestore rules are in `firestore.rules`. Publish those rules in Firebase Console before testing.
+- Payment is simulated for assignment/demo use only. No real card details or real payment processing are implemented.
+- Generated fallback/sample parking bays are deliberately not bookable; create real documents in Firestore's `slots` collection with `locationId`, `slotNumber`, `status: "available"`, and optionally `type`/`price`.

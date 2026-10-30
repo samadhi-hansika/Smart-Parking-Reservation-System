@@ -3325,3 +3325,100 @@ img, svg {
     align-items: flex-start;
   }
 }
+
+/* =========================================================
+   MEMBER 2 — RESERVATION, AVAILABILITY & PAYMENT MODULE
+   Follows ParkLink's existing blue / white dashboard system.
+========================================================= */
+.reservation-module { margin-top: 38px; }
+.reservation-subtitle { color: var(--text-muted); margin: 8px 0 0; font-size: .92rem; }
+.reservation-secure-label { display: inline-flex; align-items: center; gap: 7px; padding: 9px 12px; border: 1px solid #bfdbfe; border-radius: 999px; background: #eff6ff; color: #1d4ed8; font-size: .78rem; font-weight: 750; white-space: nowrap; }
+.reservation-notice { display: flex; align-items: flex-start; gap: 10px; padding: 13px 15px; margin: 18px 0; border: 1px solid; border-radius: 12px; font-size: .9rem; line-height: 1.5; }
+.reservation-notice.success { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+.reservation-notice.error { background: #fff7ed; color: #9a3412; border-color: #fed7aa; }
+.reservation-notice span { flex: 1; }
+.reservation-notice button { border: 0; background: transparent; color: inherit; font-size: 1.3rem; cursor: pointer; line-height: 1; }
+.reservation-columns { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, .85fr); gap: 20px; align-items: start; }
+.reservation-card { min-width: 0; padding: 23px; border: 1px solid var(--border, #e2e8f0); border-radius: 18px; background: #fff; box-shadow: 0 8px 28px rgba(15, 23, 42, .045); }
+.reservation-card-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.reservation-card-heading h3 { color: var(--navy); font-size: 1.02rem; margin: 0 0 3px; }
+.reservation-card-heading p { color: var(--text-muted); font-size: .8rem; margin: 0; line-height: 1.45; }
+.reservation-step-icon { width: 42px; height: 42px; flex: 0 0 42px; display: grid; place-items: center; border-radius: 12px; background: #eff6ff; color: #2563eb; }
+.reservation-selected-bay { display: flex; align-items: center; gap: 12px; padding: 13px; margin-bottom: 20px; background: #f8fbff; border: 1px solid #dbeafe; border-radius: 13px; }
+.reservation-car-icon { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; border-radius: 12px; color: #2563eb; background: #dbeafe; }
+.reservation-selected-bay > div:nth-child(2) { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
+.reservation-selected-bay strong { color: var(--navy); font-size: .92rem; overflow-wrap: anywhere; }
+.reservation-selected-bay span { color: var(--text-muted); font-size: .78rem; }
+.reservation-status { padding: 5px 8px; border-radius: 999px; background: #f1f5f9; color: #64748b !important; font-size: .7rem !important; font-weight: 800; text-transform: uppercase; }
+.reservation-status.is-available { background: #dcfce7; color: #166534 !important; }
+.reservation-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.reservation-field { display: flex; flex-direction: column; gap: 7px; color: #334155; font-size: .82rem; font-weight: 700; }
+.reservation-field-wide { grid-column: 1 / -1; }
+.reservation-field input { width: 100%; min-width: 0; padding: 12px 13px; border: 1px solid #cbd5e1; border-radius: 10px; outline: none; background: #fff; color: #0f172a; font: inherit; font-weight: 500; }
+.reservation-field input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.12); }
+.reservation-price-box { display: grid; gap: 12px; padding: 16px; margin: 20px 0; border: 1px solid #e2e8f0; border-radius: 13px; background: #f8fafc; }
+.reservation-price-box > div { display: flex; justify-content: space-between; gap: 12px; align-items: center; color: #64748b; font-size: .84rem; }
+.reservation-price-box strong { color: #1e293b; text-align: right; }
+.reservation-price-box strong small { color: #64748b; font-weight: 500; }
+.reservation-price-box .reservation-total { padding-top: 12px; border-top: 1px dashed #cbd5e1; color: #0f172a; font-weight: 800; }
+.reservation-price-box .reservation-total strong { color: #2563eb; font-size: 1.25rem; }
+.payment-heading { margin: 22px 0 13px; }
+.payment-method-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.payment-method { display: flex; align-items: flex-start; gap: 9px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; color: #64748b; cursor: pointer; transition: border-color .2s, background .2s; }
+.payment-method.selected { border-color: #60a5fa; background: #eff6ff; color: #2563eb; }
+.payment-method input { margin: 3px 0 0; accent-color: #2563eb; }
+.payment-method > svg { flex: 0 0 auto; margin-top: 1px; }
+.payment-method span { display: flex; flex-direction: column; gap: 4px; }
+.payment-method strong { color: #1e293b; font-size: .8rem; }
+.payment-method small { color: #64748b; font-size: .7rem; line-height: 1.4; }
+.reservation-submit { width: 100%; margin-top: 18px; justify-content: center; gap: 9px; }
+.reservation-submit:disabled { opacity: .55; cursor: not-allowed; }
+.reservation-disclaimer { margin: 11px 0 0; color: #64748b; font-size: .74rem; line-height: 1.55; }
+.reservation-spin { animation: reservation-spin 1s linear infinite; }
+@keyframes reservation-spin { to { transform: rotate(360deg); } }
+.reservation-help-card { background: linear-gradient(180deg, #fff 0%, #f8fbff 100%); }
+.reservation-check-list { display: grid; gap: 19px; padding: 0; margin: 0; list-style: none; }
+.reservation-check-list li { display: flex; align-items: flex-start; gap: 10px; }
+.reservation-check-list li > svg { color: #2563eb; flex: 0 0 auto; margin-top: 2px; }
+.reservation-check-list li span { display: flex; flex-direction: column; gap: 4px; }
+.reservation-check-list strong { color: #1e293b; font-size: .85rem; }
+.reservation-check-list small { color: #64748b; font-size: .78rem; line-height: 1.55; }
+.reservation-warning { display: flex; gap: 10px; padding: 13px; margin-top: 24px; border: 1px solid #bfdbfe; border-radius: 12px; background: #eff6ff; color: #1d4ed8; }
+.reservation-warning > svg { flex: 0 0 auto; margin-top: 2px; }
+.reservation-warning p { margin: 0; font-size: .76rem; line-height: 1.55; }
+.my-reservations-panel { margin-top: 34px; }
+.my-reservations-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; }
+.my-reservations-heading h2 { color: var(--navy); margin: 6px 0; font-size: 1.45rem; }
+.my-reservations-heading p { margin: 0; color: var(--text-muted); font-size: .86rem; }
+.my-reservations-heading .btn { display: inline-flex; align-items: center; gap: 7px; }
+.reservations-empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 38px 20px; border: 1px dashed #cbd5e1; border-radius: 16px; background: #fff; color: #94a3b8; }
+.reservations-empty h3 { margin: 12px 0 5px; color: #334155; font-size: 1rem; }
+.reservations-empty p { max-width: 420px; margin: 0; color: #64748b; font-size: .84rem; line-height: 1.5; }
+.reservation-list { display: grid; gap: 12px; }
+.reservation-ticket { display: flex; align-items: flex-start; gap: 14px; padding: 17px; border: 1px solid #e2e8f0; border-radius: 15px; background: #fff; box-shadow: 0 5px 18px rgba(15,23,42,.035); }
+.ticket-leading-icon { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; border-radius: 12px; background: #eff6ff; color: #2563eb; }
+.ticket-main { flex: 1; min-width: 0; }
+.ticket-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+.ticket-title-row h3 { margin: 0; color: #0f172a; font-size: .94rem; }
+.ticket-status { padding: 4px 8px; border-radius: 999px; font-size: .66rem; font-weight: 800; text-transform: uppercase; }
+.ticket-status.confirmed { background: #dbeafe; color: #1d4ed8; }
+.ticket-status.cancelled { background: #f1f5f9; color: #64748b; }
+.ticket-bay { margin: 5px 0 10px; color: #64748b; font-size: .8rem; }
+.ticket-details { display: flex; flex-wrap: wrap; gap: 8px 15px; color: #475569; font-size: .76rem; }
+.ticket-details span { display: inline-flex; align-items: center; gap: 5px; }
+.ticket-details svg { color: #3b82f6; }
+.ticket-reference { display: block; margin-top: 10px; color: #94a3b8; overflow-wrap: anywhere; }
+.ticket-total { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; white-space: nowrap; }
+.ticket-total > strong { color: #1d4ed8; font-size: 1rem; }
+.ticket-total > span { color: #64748b; font-size: .72rem; }
+.ticket-cancel-btn { display: inline-flex; align-items: center; gap: 5px; margin-top: 8px; padding: 6px 9px; border: 1px solid #fecaca; border-radius: 8px; background: #fff; color: #b91c1c; font-size: .74rem; font-weight: 700; cursor: pointer; }
+.ticket-cancel-btn:disabled { opacity: .5; cursor: not-allowed; }
+@media (max-width: 900px) { .reservation-columns { grid-template-columns: 1fr; } .reservation-help-card { order: 2; } }
+@media (max-width: 600px) { .reservation-card { padding: 16px; } .reservation-secure-label { display: none; } .payment-method-options { grid-template-columns: 1fr; } .reservation-ticket { flex-wrap: wrap; } .ticket-total { width: 100%; flex-direction: row; align-items: center; justify-content: space-between; padding-left: 58px; } .my-reservations-heading { align-items: flex-start; } .ticket-details { flex-direction: column; gap: 7px; } }
+
+/* Member 2: booking extension actions */
+.ticket-actions { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; margin-top: 10px; }
+.extension-time-label { display: flex; flex-direction: column; gap: 5px; color: #64748b; font-size: .75rem; font-weight: 700; }
+.extension-time-label input { min-height: 34px; padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 8px; color: #0f172a; background: #fff; }
+.ticket-extend-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 7px 10px; border: 1px solid #bfdbfe; border-radius: 8px; background: #eff6ff; color: #1d4ed8; font-size: .78rem; font-weight: 700; cursor: pointer; }
+.ticket-extend-btn:disabled, .ticket-cancel-btn:disabled { opacity: .55; cursor: not-allowed; }

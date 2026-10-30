@@ -10,6 +10,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { CarFront } from "lucide-react";
 
 import { auth, db } from "./firebase";
+import { AdminRoutes } from "./admin";
 import Navbar from "./components/layout/Navbar";
 import RoleRoute from "./components/auth/RoleRoute";
 
@@ -48,7 +49,10 @@ export default function App() {
     return unsubscribe;
   }, []);
 
-  const isDashboardRoute = pathname.includes("-dashboard") || pathname === "/my-profile";
+  const isDashboardRoute =
+    pathname.includes("-dashboard") ||
+    pathname === "/my-profile" ||
+    pathname.startsWith("/admin");
 
   if (loading) {
     return (
@@ -76,7 +80,7 @@ export default function App() {
           path="/"
           element={
             user ? (
-              <Navigate to={role === "admin" ? "/admin-dashboard" : "/user-dashboard"} replace />
+              <Navigate to={role === "admin" ? "/admin" : "/user-dashboard"} replace />
             ) : (
               <Home user={user} role={role} />
             )
@@ -109,6 +113,15 @@ export default function App() {
           element={
             <RoleRoute user={user} role={role} requiredRole="admin">
               <AdminDashboard user={user} />
+            </RoleRoute>
+          }
+        />
+
+        <Route
+          path="/admin/*"
+          element={
+            <RoleRoute user={user} role={role} requiredRole="admin">
+              <AdminRoutes user={user} role={role} />
             </RoleRoute>
           }
         />
