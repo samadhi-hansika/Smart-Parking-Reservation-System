@@ -29,6 +29,15 @@ import {
   Zap,
 } from "lucide-react";
 
+function normalizeSlotType(type = "") {
+  const normalized = type.toLowerCase();
+  if (normalized.includes("ev")) return "ev";
+  if (normalized.includes("bike") || normalized.includes("motorcycle")) return "bike";
+  if (normalized.includes("disabled") || normalized.includes("accessible")) return "disabled";
+  if (normalized.includes("car") || normalized.includes("standard") || normalized.includes("suv")) return "car";
+  return normalized;
+}
+
 export default function SlotsManagementPage({ initialLocationId = "" }) {
   const { locations, loading: locationsLoading } = useLocations();
   const { addToast } = useToast();
@@ -85,7 +94,7 @@ export default function SlotsManagementPage({ initialLocationId = "" }) {
   // Filtered Slots
   const filteredSlots = useMemo(() => {
     return slots.filter((slot) => {
-      const matchType = selectedType === "all" || (slot.type || "").toLowerCase() === selectedType.toLowerCase();
+      const matchType = selectedType === "all" || normalizeSlotType(slot.type) === selectedType.toLowerCase();
       const matchStatus =
         selectedStatus === "all" || (slot.status || "").toLowerCase() === selectedStatus.toLowerCase();
       const matchSearch =

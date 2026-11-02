@@ -104,7 +104,7 @@ export default function Navbar({ user, role }) {
           {user ? (
             <div className="user-nav-group">
               <Link
-                to={role === "admin" ? "/admin-dashboard" : "/user-dashboard"}
+                to={role === "admin" ? "/admin" : "/user-dashboard"}
                 className="btn btn-outline btn-sm dashboard-quick-btn"
               >
                 <LayoutDashboardIcon />
@@ -202,7 +202,7 @@ export default function Navbar({ user, role }) {
           {user ? (
             <div className="drawer-auth-box">
               <Link
-                to={role === "admin" ? "/admin-dashboard" : "/user-dashboard"}
+                to={role === "admin" ? "/admin" : "/user-dashboard"}
                 className="btn btn-primary full mb-2"
                 onClick={() => setOpen(false)}
               >

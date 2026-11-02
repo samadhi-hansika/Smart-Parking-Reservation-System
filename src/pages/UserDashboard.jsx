@@ -46,7 +46,14 @@ export default function UserDashboard({ user }) {
       ]);
 
       const savedProfile = profileSnapshot.exists() ? profileSnapshot.data() : {};
-      const loadedLocations = locationsSnapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      const loadedLocations = locationsSnapshot.docs.map((item) => {
+        const data = item.data();
+        return {
+          ...data,
+          id: item.id,
+          price: Number(data.pricePerHour ?? data.price ?? 150),
+        };
+      });
       const loadedSlots = slotsSnapshot.docs.map((item) => {
         const data = item.data();
         return {
@@ -103,21 +110,26 @@ export default function UserDashboard({ user }) {
   // Available slots for selected location
   const currentSlots = useMemo(() => {
     if (!selectedLocation) return [];
-    const locSlots = slots.filter((slot) => slot.locationId === selectedLocation.id);
-    if (locSlots.length > 0) return locSlots;
-    return generateFallbackSlots(selectedLocation.id).map((slot) => ({ ...slot, isPersisted: false }));
+    return slots.filter((slot) => slot.locationId === selectedLocation.id);
   }, [selectedLocation, slots]);
 
   const totalSlotsCount = useMemo(() => {
-    if (slots.length > 0) return slots.length;
-    return locations.reduce((sum, l) => sum + (Number(l.totalSlots) || 20), 0);
-  }, [slots, locations]);
+    return slots.length;
+  }, [slots]);
 
   const availableSlotsCount = useMemo(() => {
-    const free = slots.filter((slot) => slot.status?.toLowerCase() === "available");
-    if (free.length > 0) return free.length;
-    return locations.reduce((sum, l) => sum + (Number(l.availableSlots) || 8), 0);
-  }, [slots, locations]);
+    return slots.filter((slot) => slot.status?.toLowerCase() === "available").length;
+  }, [slots]);
+
+  const laneGroups = useMemo(() => {
+    const groups = new Map();
+    currentSlots.forEach((slot) => {
+      const lane = String(slot.lane || slot.slotNumber?.split("-")[0] || "Other").trim() || "Other";
+      if (!groups.has(lane)) groups.set(lane, []);
+      groups.get(lane).push(slot);
+    });
+    return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [currentSlots]);
 
   return (
     <div className="dashboard-page-wrapper">
@@ -227,9 +239,7 @@ export default function UserDashboard({ user }) {
             <div className="dash-locations-grid">
               {filteredLocations.map((loc) => {
                 const locSlots = slots.filter((s) => s.locationId === loc.id);
-                const freeCount = locSlots.length > 0
-                  ? locSlots.filter((s) => s.status?.toLowerCase() === "available").length
-                  : Number(loc.availableSlots) || 8;
+                const freeCount = locSlots.filter((s) => s.status?.toLowerCase() === "available").length;
 
                 const isSelected = selectedLocation?.id === loc.id;
 
@@ -323,12 +333,7 @@ export default function UserDashboard({ user }) {
                     </div>
 
                     {/* Group slots into lanes */}
-                    {["A", "B", "C"].map((laneLetter) => {
-                      const laneSlots = currentSlots.filter(
-                        (s) => (s.lane === laneLetter) || s.slotNumber?.startsWith(laneLetter)
-                      );
-                      const displaySlots = laneSlots;
-
+                    {laneGroups.length > 0 ? laneGroups.map(([laneLetter, displaySlots]) => {
                       return (
                         <div key={laneLetter} className="lane-row-group">
                           <span className="lane-side-label">LANE {laneLetter}</span>
@@ -377,7 +382,11 @@ export default function UserDashboard({ user }) {
                           </div>
                         </div>
                       );
-                    })}
+                    }) : (
+                      <p className="dash-empty-ticket-state" style={{ padding: "20px" }}>
+                        No parking slots have been added to this location yet.
+                      </p>
+                    )}
                   </div>
 
                   {/* Slot Details Panel */}
