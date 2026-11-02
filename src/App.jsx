@@ -18,7 +18,6 @@ import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import UserDashboard from "./pages/UserDashboard";
 import UserProfile from "./pages/UserProfile";
-import AdminDashboard from "./pages/AdminDashboard";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -111,9 +110,7 @@ export default function App() {
         <Route
           path="/admin-dashboard"
           element={
-            <RoleRoute user={user} role={role} requiredRole="admin">
-              <AdminDashboard user={user} />
-            </RoleRoute>
+            <Navigate to="/admin" replace />
           }
         />
 

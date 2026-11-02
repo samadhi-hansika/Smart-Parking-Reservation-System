@@ -63,7 +63,7 @@ export default function Auth({ register = false }) {
         const result = await signInWithEmailAndPassword(auth, form.email, form.password);
         const profile = await getDoc(doc(db, "users", result.user.uid));
         const role = profile.exists() ? profile.data().role : "user";
-        navigate(role === "admin" ? "/admin-dashboard" : "/user-dashboard");
+        navigate(role === "admin" ? "/admin" : "/user-dashboard");
       }
     } catch (err) {
       console.error(err);
